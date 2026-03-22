@@ -34,18 +34,15 @@ export function EquipmentCard({ equipment, onBorrow }: EquipmentCardProps) {
   };
 
   const imageSrc = equipment.imageUrl || '/placeholder.jpg';
-  const isVolleyballBallImage = imageSrc.includes('bolaVolleyball.png');
-
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col py-0 gap-0">
-      <div className="relative w-full h-40 bg-gradient-to-br from-primary/20 to-accent/20">
+      <div className="relative w-full h-40 bg-[#e9edf0]">
         <Image
           src={imageSrc}
           alt={equipment.name}
           fill
-          className={isVolleyballBallImage ? 'object-contain p-2' : 'object-cover'}
+          className="object-contain p-2"
         />
-        <div className="absolute inset-0 bg-black/10" />
         <div className="absolute bottom-3 left-3 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
           {equipment.category}
         </div>

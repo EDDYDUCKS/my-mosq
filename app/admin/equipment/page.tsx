@@ -142,14 +142,13 @@ export default function AdminEquipmentPage() {
             {equipment.map((item) => (
               <div key={item.id} className="aspect-square">
                 <Card className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow py-0 gap-0">
-                  <div className="relative h-1/2">
+                  <div className="relative h-1/2 bg-[#e9edf0]">
                     <Image
                       src={item.imageUrl}
                       alt={item.name}
                       fill
-                      className={item.imageUrl.includes('bolaVolleyball.png') ? 'object-contain p-2' : 'object-cover'}
+                      className="object-contain p-2"
                     />
-                    <div className="absolute inset-0 bg-black/20" />
                     <div className="absolute bottom-3 left-3 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
                       {item.category}
                     </div>

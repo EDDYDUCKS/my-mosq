@@ -1,20 +1,16 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Button } from '@/components/ui/button';
 import { 
-  Home, 
-  BarChart3, 
-  Settings, 
   LogOut, 
   Menu,
   X,
   Moon,
-  Sun
+  Sun,
+  Star
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
@@ -44,41 +40,43 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-primary/30 bg-primary/95 text-primary-foreground backdrop-blur">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-[#2d5a27] to-[#1e3a1a] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="p-2 rounded-lg hover:bg-primary/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary lg:hidden"
+              className="p-2 rounded-lg hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50 lg:hidden"
               aria-label="Abrir menú"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <Image 
-              src="/ESTRELLASALLE.png" 
-              alt="Estrella La Salle" 
-              width={32} 
-              height={32}
-              className="w-8 h-8"
-            />
+
+            <div className="hidden sm:flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur-md">
+              <Star className="h-6 w-6" />
+            </div>
+
             <div>
-              <h1 className="text-lg font-bold">GEAR</h1>
-              <p className="text-xs text-primary-foreground/80">{title}</p>
+              <h1 className="text-3xl font-black leading-none tracking-tight">GEAR</h1>
+              <p className="text-sm text-white/75">{title}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.14)] backdrop-blur-md">
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg hover:bg-primary/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
               aria-label="Cambiar tema"
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            <div className="hidden sm:flex flex-col text-right leading-tight">
-              <span className="text-sm font-semibold">{user?.name}</span>
-              <span className="text-xs text-primary-foreground/70 capitalize">{user?.role}</span>
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-white/15 text-sm font-bold">
+              {(user?.name || 'U').charAt(0).toUpperCase()}
+            </div>
+
+            <div className="hidden sm:flex flex-col text-left leading-tight">
+              <span className="text-base font-semibold">{user?.name}</span>
+              <span className="text-xs text-white/75 capitalize">{user?.role}</span>
             </div>
           </div>
         </div>

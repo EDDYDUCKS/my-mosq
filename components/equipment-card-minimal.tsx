@@ -1,16 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import React from 'react';
 import { Equipment } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Trophy, 
-  Dumbbell, 
-  Wind, 
-  Zap,
-  Package
-} from 'lucide-react';
 
 interface EquipmentCardMinimalProps {
   equipment: Equipment;
@@ -20,32 +14,17 @@ interface EquipmentCardMinimalProps {
 export function EquipmentCardMinimal({ equipment, onBorrow }: EquipmentCardMinimalProps) {
   const isAvailable = equipment.available > 0;
   const availabilityPercentage = (equipment.available / equipment.total) * 100;
-
-  const getIcon = (name: string) => {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('baloncesto') || lowerName.includes('basketball')) {
-      return <Package className="w-12 h-12 text-green-600" />;
-    }
-    if (lowerName.includes('fútbol') || lowerName.includes('futbol') || lowerName.includes('soccer')) {
-      return <Trophy className="w-12 h-12 text-green-600" />;
-    }
-    if (lowerName.includes('béisbol') || lowerName.includes('baseball')) {
-      return <Zap className="w-12 h-12 text-green-600" />;
-    }
-    if (lowerName.includes('cono') || lowerName.includes('cone')) {
-      return <Wind className="w-12 h-12 text-green-600" />;
-    }
-    if (lowerName.includes('guante') || lowerName.includes('glove')) {
-      return <Dumbbell className="w-12 h-12 text-green-600" />;
-    }
-    return <Package className="w-12 h-12 text-green-600" />;
-  };
-
+  const imageSrc = equipment.imageUrl || '/placeholder.jpg';
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-green-100 dark:border-green-900 h-full flex flex-col bg-white dark:bg-slate-950">
-      {/* Icon Section */}
-      <div className="h-32 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 flex items-center justify-center">
-        {getIcon(equipment.name)}
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-green-100 dark:border-green-900 h-full flex flex-col bg-white dark:bg-slate-950 py-0 gap-0">
+      {/* Image Section */}
+      <div className="relative h-32 bg-[#e9edf0]">
+        <Image
+          src={imageSrc}
+          alt={equipment.name}
+          fill
+          className="object-contain p-2"
+        />
       </div>
 
       {/* Content Section */}
