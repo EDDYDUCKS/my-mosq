@@ -102,7 +102,12 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="relative min-h-screen bg-background flex">
+      <div className="absolute inset-0 md:hidden">
+        <Image src="/ulsa-campus.png" alt="Campus ULSA" fill className="object-cover" priority />
+        <div className="absolute inset-0 bg-black/45" />
+      </div>
+
       <div className="relative hidden md:flex w-1/2 overflow-hidden">
         <Image src="/ulsa-campus.png" alt="Campus ULSA" fill className="object-cover" priority />
         <div className="absolute inset-0 bg-black/40" />
@@ -110,7 +115,7 @@ export function LoginForm() {
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-4">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-12 h-12 mb-4">
@@ -120,7 +125,7 @@ export function LoginForm() {
             <p className="text-xl text-foreground">Sistema de Gestión de Préstamos de Equipos Deportivos</p>
           </div>
 
-          <Card className="border-border shadow-lg">
+          <Card className="border-border shadow-lg bg-background/95 backdrop-blur-sm md:bg-card md:backdrop-blur-0">
             <CardHeader>
               <CardTitle>Iniciar Sesión</CardTitle>
             </CardHeader>
