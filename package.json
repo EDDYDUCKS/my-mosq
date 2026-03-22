@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -62,6 +62,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "eslint": "^9.38.0",
+    "eslint-config-next": "16.1.6",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",
     "@types/react": "19.2.14",

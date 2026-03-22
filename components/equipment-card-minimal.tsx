@@ -5,7 +5,6 @@ import { Equipment } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Ball, 
   Trophy, 
   Dumbbell, 
   Wind, 
@@ -25,7 +24,7 @@ export function EquipmentCardMinimal({ equipment, onBorrow }: EquipmentCardMinim
   const getIcon = (name: string) => {
     const lowerName = name.toLowerCase();
     if (lowerName.includes('baloncesto') || lowerName.includes('basketball')) {
-      return <Basketball className="w-12 h-12 text-green-600" />;
+      return <Package className="w-12 h-12 text-green-600" />;
     }
     if (lowerName.includes('fútbol') || lowerName.includes('futbol') || lowerName.includes('soccer')) {
       return <Trophy className="w-12 h-12 text-green-600" />;
