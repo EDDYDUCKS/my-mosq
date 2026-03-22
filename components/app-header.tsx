@@ -58,6 +58,7 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
                 width={26}
                 height={26}
                 className="h-6 w-6 object-contain"
+                style={{ filter: 'invert(62%) sepia(49%) saturate(512%) hue-rotate(58deg) brightness(95%) contrast(90%)' }}
                 priority
               />
             </div>
