@@ -88,14 +88,18 @@ class PrestamoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Prestamo.objects.all().select_related('estudiante', 'entregado_por').prefetch_related('detalles__equipo')
+        queryset = Prestamo.objects.all().select_related('estudiante', 'entregado_por', 'recibido_por').prefetch_related('detalles__equipo')
         if self.request.user.is_staff:
             return queryset
         return queryset.filter(estudiante=self.request.user)
 
     def perform_create(self, serializer):
         if self.request.user.is_staff:
-            serializer.save()
+            estado = serializer.validated_data.get('estado')
+            save_kwargs = {}
+            if estado == 'ACTIVO':
+                save_kwargs['entregado_por'] = self.request.user
+            serializer.save(**save_kwargs)
             return
 
         estudiante = serializer.validated_data.get('estudiante')
@@ -103,6 +107,26 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Solo puedes crear préstamos para tu propio usuario.')
 
         serializer.save(estado='PENDIENTE')
+
+    def perform_update(self, serializer):
+        if not (self.request.user.is_staff or self.request.user.is_superuser):
+            raise PermissionDenied('Solo administradores pueden actualizar préstamos.')
+
+        estado_actual = serializer.instance.estado
+        nuevo_estado = serializer.validated_data.get('estado', estado_actual)
+        save_kwargs = {}
+
+        if nuevo_estado == 'ACTIVO' and estado_actual != 'ACTIVO':
+            save_kwargs['entregado_por'] = self.request.user
+
+        if nuevo_estado == 'DEVUELTO' and estado_actual != 'DEVUELTO':
+            save_kwargs['recibido_por'] = self.request.user
+            save_kwargs['fecha_recepcion'] = timezone.now()
+        elif estado_actual == 'DEVUELTO' and nuevo_estado != 'DEVUELTO':
+            save_kwargs['recibido_por'] = None
+            save_kwargs['fecha_recepcion'] = None
+
+        serializer.save(**save_kwargs)
 
 
 class SancionViewSet(viewsets.ModelViewSet):
@@ -162,19 +186,20 @@ def exportar_reporte_excel(request):
     encabezados = [
         'Fecha de Entrega', 'Hora de Entrega', 'Fecha de Devolución', 'Hora de Devolución',
         'N° Carnet', 'Nombre del Estudiante', 'Carrera', 'Año', 
-        'Descripción del Equipo', 'Cantidad', 'Entregado Por (Admin)', 'Recibido Por (Estudiante)'
+        'Descripción del Equipo', 'Cantidad', 'Entregado Por (Admin)', 'Recibido Por (Admin)'
     ]
     ws.append(encabezados)
 
     # Traemos los tickets con todos sus detalles de un solo golpe para no saturar la base de datos
-    prestamos = Prestamo.objects.all().select_related('estudiante', 'entregado_por').prefetch_related('detalles__equipo')
+    prestamos = Prestamo.objects.all().select_related('estudiante', 'entregado_por', 'recibido_por').prefetch_related('detalles__equipo')
 
     for p in prestamos:
         fecha_p = p.fecha_prestamo.strftime('%Y-%m-%d') if p.fecha_prestamo else 'N/A'
         hora_p = p.fecha_prestamo.strftime('%H:%M:%S') if p.fecha_prestamo else 'N/A'
-        fecha_d = p.fecha_devolucion.strftime('%Y-%m-%d') if p.fecha_devolucion else 'Pendiente'
-        hora_d = p.fecha_devolucion.strftime('%H:%M:%S') if p.fecha_devolucion else 'Pendiente'
+        fecha_d = p.fecha_recepcion.strftime('%Y-%m-%d') if p.fecha_recepcion else 'Pendiente'
+        hora_d = p.fecha_recepcion.strftime('%H:%M:%S') if p.fecha_recepcion else 'Pendiente'
         entregado_por = p.entregado_por.username if p.entregado_por else 'N/A'
+        recibido_por = p.recibido_por.username if p.recibido_por else 'Pendiente'
 
         # MAGIA: Recorremos cada línea del carrito para este ticket
         for detalle in p.detalles.all():
@@ -190,7 +215,7 @@ def exportar_reporte_excel(request):
                 detalle.equipo.nombre, # El nombre de lo que prestó
                 detalle.cantidad,      # <--- ¡LA CANTIDAD REAL!
                 entregado_por,
-                p.estudiante.username
+                recibido_por
             ]
             ws.append(fila)
 

@@ -45,15 +45,17 @@ export function ReportsDownload() {
           id: request.id,
           fecha: new Date(request.requestDate).toLocaleDateString('es-NI'),
           horaEntrega: new Date(request.requestDate).toLocaleTimeString('es-NI'),
-          horaDevolucion: new Date(request.dueDate).toLocaleTimeString('es-NI'),
-          numeroCarnet: request.studentId,
+          horaDevolucion: request.receivedAt
+            ? new Date(request.receivedAt).toLocaleTimeString('es-NI')
+            : 'Pendiente',
+          numeroCarnet: request.studentCardId || 'N/D',
           nombreEstudiante: request.studentName,
-          carrera: 'N/D',
-          año: 'N/D',
+          carrera: request.studentCareer || 'N/D',
+          año: request.studentYear || 'N/D',
           descripcionEquipo: request.equipmentName,
           cantidad: request.quantity,
-          personaEntrega: 'N/D',
-          personaRecibe: request.studentName,
+          personaEntrega: request.deliveredByName || 'N/D',
+          personaRecibe: request.receivedByName || 'Pendiente',
           estado: request.backendStatus || request.status,
         }));
 

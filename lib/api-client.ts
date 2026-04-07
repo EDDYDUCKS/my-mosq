@@ -32,12 +32,27 @@ interface BackendPrestamo {
   id: number;
   estudiante: number;
   estudiante_detalle?: {
+    id?: number;
     first_name?: string;
     last_name?: string;
     username?: string;
+    carnet?: string | null;
+    carrera?: string | null;
+    ano_cursado?: string | null;
   };
+  entregado_por_detalle?: {
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  } | null;
+  recibido_por_detalle?: {
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  } | null;
   fecha_prestamo: string;
   fecha_devolucion: string | null;
+  fecha_recepcion: string | null;
   estado: 'PENDIENTE' | 'ACTIVO' | 'DEVUELTO' | 'RECHAZADO' | 'ATRASADO';
   detalles: BackendDetallePrestamo[];
 }
@@ -235,24 +250,43 @@ function mapLoanStatus(status: BackendPrestamo['estado']): LoanRequest['status']
   return 'approved';
 }
 
+function formatPersonName(person?: {
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+} | null): string | undefined {
+  if (!person) return undefined;
+
+  const fullName = `${person.first_name || ''} ${person.last_name || ''}`.trim();
+  return fullName || person.username || undefined;
+}
+
 function mapLoans(prestamos: BackendPrestamo[]): LoanRequest[] {
   return prestamos.flatMap((prestamo) => {
     const studentName = `${prestamo.estudiante_detalle?.first_name || ''} ${prestamo.estudiante_detalle?.last_name || ''}`.trim()
       || prestamo.estudiante_detalle?.username
       || 'Estudiante';
+    const deliveredByName = formatPersonName(prestamo.entregado_por_detalle);
+    const receivedByName = formatPersonName(prestamo.recibido_por_detalle);
 
     return prestamo.detalles.map((detalle) => ({
       id: `${prestamo.id}-${detalle.id}`,
       loanGroupId: String(prestamo.id),
       studentId: String(prestamo.estudiante),
       studentName,
+      studentCardId: prestamo.estudiante_detalle?.carnet || undefined,
+      studentCareer: prestamo.estudiante_detalle?.carrera || undefined,
+      studentYear: prestamo.estudiante_detalle?.ano_cursado || undefined,
       equipmentId: String(detalle.equipo),
       equipmentName: detalle.equipo_detalle?.nombre || `Equipo #${detalle.equipo}`,
       quantity: detalle.cantidad,
       requestDate: new Date(prestamo.fecha_prestamo),
       dueDate: new Date(prestamo.fecha_devolucion || prestamo.fecha_prestamo),
+      receivedAt: prestamo.fecha_recepcion ? new Date(prestamo.fecha_recepcion) : undefined,
       status: mapLoanStatus(prestamo.estado),
       backendStatus: prestamo.estado,
+      deliveredByName,
+      receivedByName,
     }));
   });
 }

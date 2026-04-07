@@ -30,12 +30,28 @@ class DetallePrestamoSerializer(serializers.ModelSerializer):
 # --- TRADUCTOR DEL TICKET PRINCIPAL (PRESTAMO) ---
 class PrestamoSerializer(serializers.ModelSerializer):
     estudiante_detalle = EstudianteSerializer(source='estudiante', read_only=True)
+    entregado_por_detalle = EstudianteSerializer(source='entregado_por', read_only=True)
+    recibido_por_detalle = EstudianteSerializer(source='recibido_por', read_only=True)
     # Aquí le decimos que este ticket contiene muchos "detalles" (el carrito)
     detalles = DetallePrestamoSerializer(many=True)
 
     class Meta:
         model = Prestamo
-        fields = ['id', 'estudiante', 'estudiante_detalle', 'entregado_por', 'fecha_prestamo', 'fecha_devolucion', 'estado', 'detalles']
+        fields = [
+            'id',
+            'estudiante',
+            'estudiante_detalle',
+            'entregado_por',
+            'entregado_por_detalle',
+            'recibido_por',
+            'recibido_por_detalle',
+            'fecha_prestamo',
+            'fecha_devolucion',
+            'fecha_recepcion',
+            'estado',
+            'detalles',
+        ]
+        read_only_fields = ['entregado_por', 'recibido_por', 'fecha_recepcion']
 
     # MAGIA: Le enseñamos a Django cómo desarmar el paquete JSON de Christoffer y guardarlo en las 2 tablas
     def create(self, validated_data):

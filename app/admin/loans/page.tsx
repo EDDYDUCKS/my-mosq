@@ -5,6 +5,7 @@ import { ProtectedLayout } from '@/components/protected-layout';
 import { AppHeader } from '@/components/app-header';
 import { fetchAdminLoans, markLoanAsReturned, updateLoanStatus } from '@/lib/api-client';
 import { LoanRequest } from '@/lib/types';
+import { useNotifications } from '@/lib/notifications-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,9 @@ interface LoanGroup {
   backendStatus?: string;
   requestDate: Date;
   dueDate: Date;
+  deliveredByName?: string;
+  receivedByName?: string;
+  receivedAt?: Date;
   items: { equipmentName: string; quantity: number }[];
   representative: LoanRequest; // un item para acciones
 }
@@ -43,6 +47,9 @@ function groupLoans(loans: LoanRequest[]): LoanGroup[] {
         backendStatus: loan.backendStatus,
         requestDate: loan.requestDate,
         dueDate: loan.dueDate,
+        deliveredByName: loan.deliveredByName,
+        receivedByName: loan.receivedByName,
+        receivedAt: loan.receivedAt,
         items: [],
         representative: loan,
       });
@@ -55,6 +62,7 @@ function groupLoans(loans: LoanRequest[]): LoanGroup[] {
 export default function AdminLoansPage() {
   const [loans, setLoans] = useState<LoanRequest[]>([]);
   const [workingGroupId, setWorkingGroupId] = useState<string | null>(null);
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     let isMounted = true;
@@ -80,6 +88,7 @@ export default function AdminLoansPage() {
     try {
       await updateLoanStatus(group.groupId, 'ACTIVO');
       await reload();
+      addNotification('Préstamo entregado', 'Se registró el encargado que entregó el equipo.', 'success');
     } finally { setWorkingGroupId(null); }
   };
 
@@ -96,6 +105,7 @@ export default function AdminLoansPage() {
     try {
       await markLoanAsReturned(group.groupId);
       await reload();
+      addNotification('Recepción registrada', 'Se guardó el encargado que recibió el equipo de vuelta.', 'success');
     } finally { setWorkingGroupId(null); }
   };
 
@@ -166,10 +176,30 @@ export default function AdminLoansPage() {
               <p className="text-sm text-foreground">{new Date(group.requestDate).toLocaleDateString('es-NI')}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha Devolución</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha Límite</p>
               <p className="text-sm text-foreground">{new Date(group.dueDate).toLocaleDateString('es-NI')}</p>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Entregado por</p>
+              <p className="text-sm text-foreground">{group.deliveredByName || 'Pendiente'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Recibido por</p>
+              <p className="text-sm text-foreground">{group.receivedByName || 'Pendiente'}</p>
+            </div>
+          </div>
+
+          {group.receivedAt && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha de recepción</p>
+              <p className="text-sm text-foreground">
+                {new Date(group.receivedAt).toLocaleString('es-NI')}
+              </p>
+            </div>
+          )}
 
           {/* Acciones */}
           {!closed && (

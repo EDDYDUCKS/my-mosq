@@ -31,13 +31,19 @@ export interface LoanRequest {
   loanGroupId?: string;
   studentId: string;
   studentName: string;
+  studentCardId?: string;
+  studentCareer?: string;
+  studentYear?: string;
   equipmentId: string;
   equipmentName: string;
   quantity: number;
   requestDate: Date;
   dueDate: Date;
+  receivedAt?: Date;
   status: 'pending' | 'approved' | 'rejected' | 'returned';
   backendStatus?: 'PENDIENTE' | 'ACTIVO' | 'DEVUELTO' | 'RECHAZADO' | 'ATRASADO';
+  deliveredByName?: string;
+  receivedByName?: string;
   notes?: string;
 }
 
