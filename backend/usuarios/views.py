@@ -141,7 +141,10 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         if not estudiante or estudiante.id != self.request.user.id:
             raise PermissionDenied('Solo puedes crear préstamos para tu propio usuario.')
 
-        if not self.request.user.carnet or not self.request.user.carrera:
+        # Solo los estudiantes (@est.ulsa.edu.ni) deben tener carnet y carrera
+        # Los profesores (@ac.ulsa.edu.ni) y staff (@ulsa.edu.ni) pueden prestar sin esos datos
+        es_estudiante = self.request.user.email.lower().endswith('@est.ulsa.edu.ni')
+        if es_estudiante and (not self.request.user.carnet or not self.request.user.carrera):
             raise PermissionDenied('Debes completar tu perfil (carnet y carrera) antes de solicitar equipos.')
 
         serializer.save(estado='PENDIENTE')

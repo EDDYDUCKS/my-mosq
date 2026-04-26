@@ -8,3 +8,5 @@ psycopg[binary]
 Pillow
 sqlparse==0.5.5
 tzdata==2025.3
+gunicorn==21.2.0
+whitenoise==6.6.0

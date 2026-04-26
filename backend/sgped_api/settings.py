@@ -44,8 +44,10 @@ _load_env_file()
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
+# En Render, el dominio terminará en .onrender.com
+# ALLOWED_HOSTS toma un string separado por comas: ej. "127.0.0.1,localhost,mosq-api.onrender.com"
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 
@@ -67,6 +69,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'sgped_api.network_middleware.AllowedNetworkMiddleware',  # ← Restricción de red (primera en ejecutarse)
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',             # ← WhiteNoise para servir archivos estáticos en Render
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -150,6 +153,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Directorio donde collectstatic agrupará los archivos en producción
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise compresión y caché de estáticos
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # --- Archivos subidos por usuarios (imágenes de equipos, etc.) ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -170,13 +179,19 @@ REST_FRAMEWORK = {
 
 
 # --- CONFIGURACIÓN DE CORS (Para el Frontend) ---
+# En producción, configuraremos FRONTEND_URL en las variables de entorno
+frontend_url = os.getenv('FRONTEND_URL')
+
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", # Puerto típico de React
-    "http://localhost:5173", # Puerto típico de Vite (React moderno)
+    "http://localhost:3000",
+    "http://localhost:5173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
 ]
 
-# (Opcional) Si quieres que en fase de desarrollo cualquier página pueda entrar, 
-# puedes comentar la lista de arriba y solo poner:
-# CORS_ALLOW_ALL_ORIGINS = True
+if frontend_url:
+    # Ej: "https://mosq.vercel.app"
+    CORS_ALLOWED_ORIGINS.append(frontend_url.strip().rstrip('/'))
+
+# CORS_ALLOW_ALL_ORIGINS no es recomendado en producción,
+# lo dejaremos desactivado y usaremos explícitamente CORS_ALLOWED_ORIGINS.
