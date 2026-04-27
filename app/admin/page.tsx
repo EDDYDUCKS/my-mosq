@@ -47,7 +47,7 @@ export default function AdminDashboard() {
         setLoans(loansData);
         
         // Live Sync: Detectar nuevas solicitudes pendientes
-        const currentPending = loansData.filter(l => l.status === 'PENDIENTE' || l.status === 'pending').length;
+        const currentPending = loansData.filter(l => l.status === 'pending').length;
         setLastPendingCount(prev => {
           if (isSilent && currentPending > prev) {
             // Reproducir sonido sutil
@@ -67,11 +67,7 @@ export default function AdminDashboard() {
               });
             }
 
-            addNotification({
-              title: '¡Nueva Solicitud!',
-              message: 'Un estudiante acaba de solicitar un préstamo.',
-              type: 'info'
-            });
+            addNotification('¡Nueva Solicitud!', 'Un estudiante acaba de solicitar un préstamo.', 'info');
           }
           return currentPending;
         });
