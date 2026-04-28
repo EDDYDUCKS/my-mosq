@@ -72,7 +72,7 @@ function EsperaContent() {
   // ── PANTALLA APROBADO ──
   if (screen === 'approved') {
     return (
-      <div className="fixed inset-0 z-50 bg-green-50 dark:bg-green-950 flex flex-col items-center justify-center p-8 text-center">
+      <div className="fixed inset-0 z-[100] bg-green-50 dark:bg-green-950 flex flex-col items-center justify-center p-8 text-center">
         <CheckCircle2 className="w-24 h-24 text-green-500 mb-6 animate-bounce" />
         <h1 className="text-4xl font-extrabold text-green-800 dark:text-green-200 mb-3">
           ¡Préstamo Aprobado!
@@ -93,7 +93,7 @@ function EsperaContent() {
   // ── PANTALLA RECHAZADO ──
   if (screen === 'rejected') {
     return (
-      <div className="fixed inset-0 z-50 bg-red-50 dark:bg-red-950 flex flex-col items-center justify-center p-8 text-center">
+      <div className="fixed inset-0 z-[100] bg-red-50 dark:bg-red-950 flex flex-col items-center justify-center p-8 text-center">
         <XCircle className="w-24 h-24 text-red-500 mb-6" />
         <h1 className="text-4xl font-extrabold text-red-800 dark:text-red-200 mb-3">
           Préstamo Rechazado
@@ -120,7 +120,7 @@ function EsperaContent() {
 
   // ── PANTALLA ESPERANDO ──
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6">
       {/* Indicador de pulso */}
       <div className="flex items-center gap-3 mb-8">
         <span className="relative flex h-4 w-4">
