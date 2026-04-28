@@ -527,10 +527,10 @@ export async function loginWithGoogleApi(credential: string): Promise<BackendLog
   });
 }
 
-export async function completarPerfilApi(carnet: string, carrera: string): Promise<void> {
+export async function completarPerfilApi(carnet: string, carrera: string, ano_cursado: string): Promise<void> {
   await apiRequest('/auth/completar-perfil/', {
     method: 'POST',
-    body: { carnet, carrera },
+    body: { carnet, carrera, ano_cursado },
   });
 }
 

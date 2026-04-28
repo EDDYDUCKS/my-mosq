@@ -18,6 +18,7 @@ function EsperaContent() {
   const [rejectionReason, setRejection] = useState<string>('');
   const [cancelling, setCancelling]     = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const trapActiveRef = useRef(true);
 
   // Guardar en localStorage para persistencia
   useEffect(() => {
@@ -28,12 +29,16 @@ function EsperaContent() {
   useEffect(() => {
     if (screen !== 'waiting') return;
 
+    trapActiveRef.current = true;
+
     // Push a dummy state so pressing back doesn't leave
     window.history.pushState({ mosqWaiting: true }, '');
 
     const handlePopState = () => {
-      // Re-push to trap user in this screen
-      window.history.pushState({ mosqWaiting: true }, '');
+      if (trapActiveRef.current) {
+        // Re-push to trap user in this screen
+        window.history.pushState({ mosqWaiting: true }, '');
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -51,10 +56,12 @@ function EsperaContent() {
 
       if (bs === 'ACTIVO') {
         localStorage.removeItem(PENDING_LOAN_KEY);
+        trapActiveRef.current = false;
         setScreen('approved');
         if (intervalRef.current) clearInterval(intervalRef.current);
       } else if (bs === 'RECHAZADO') {
         localStorage.removeItem(PENDING_LOAN_KEY);
+        trapActiveRef.current = false;
         // Intentar mostrar el motivo desde 'notes' u observaciones
         const maybeNotes = (loan as { notes?: string; observations?: string }).notes
           || (loan as { observations?: string }).observations
@@ -74,14 +81,19 @@ function EsperaContent() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [poll]);
 
+  const [cancelError, setCancelError] = useState('');
+
   const handleCancel = async () => {
     setCancelling(true);
+    setCancelError('');
     try {
       await cancelLoan(loanId);
       localStorage.removeItem(PENDING_LOAN_KEY);
-      router.push('/prestamos');
-    } catch {
+      trapActiveRef.current = false; // Disable the back-button trap
+      window.location.href = '/prestamos'; // Force navigation (bypass Next.js router)
+    } catch (err) {
       setCancelling(false);
+      setCancelError(err instanceof Error ? err.message : 'No se pudo cancelar. Intenta de nuevo.');
     }
   };
 
@@ -186,6 +198,10 @@ function EsperaContent() {
           <><XCircle className="w-4 h-4 mr-2" /> Cancelar mi solicitud</>
         )}
       </Button>
+
+      {cancelError && (
+        <p className="text-sm text-red-500 font-medium mt-2 text-center max-w-sm">{cancelError}</p>
+      )}
     </div>
   );
 }

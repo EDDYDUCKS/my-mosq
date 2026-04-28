@@ -17,6 +17,7 @@ export default function CompletarPerfilPage() {
   const { user } = useAuth();
   const [carnet, setCarnet] = useState('');
   const [carrera, setCarrera] = useState('');
+  const [anoCursado, setAnoCursado] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,10 +31,18 @@ export default function CompletarPerfilPage() {
     { value: 'IEM', label: 'Ingeniería Electromédica' },
   ];
 
+  const ANOS = [
+    { value: '1', label: '1er Año' },
+    { value: '2', label: '2do Año' },
+    { value: '3', label: '3er Año' },
+    { value: '4', label: '4to Año' },
+    { value: '5', label: '5to Año' },
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!carnet || !carrera) {
-      setError('Por favor llena ambos campos.');
+    if (!carnet || !carrera || !anoCursado) {
+      setError('Por favor llena todos los campos.');
       return;
     }
 
@@ -47,7 +56,7 @@ export default function CompletarPerfilPage() {
     setError('');
 
     try {
-      await completarPerfilApi(carnet, carrera);
+      await completarPerfilApi(carnet, carrera, anoCursado);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Error al guardar el perfil.');
@@ -61,7 +70,7 @@ export default function CompletarPerfilPage() {
         <CardHeader>
           <CardTitle>Completar Perfil</CardTitle>
           <CardDescription>
-            Como estudiante, necesitamos que ingreses tu número de carnet y carrera para poder realizar préstamos de equipo deportivo.
+            Como estudiante, necesitamos que ingreses tu número de carnet, carrera y año que cursas para poder realizar préstamos de equipo deportivo.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -94,6 +103,22 @@ export default function CompletarPerfilPage() {
                   {CARRERAS.map((c) => (
                     <SelectItem key={c.value} value={c.value}>
                       {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ano">Año que cursas</Label>
+              <Select value={anoCursado} onValueChange={setAnoCursado} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona tu año" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ANOS.map((a) => (
+                    <SelectItem key={a.value} value={a.value}>
+                      {a.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

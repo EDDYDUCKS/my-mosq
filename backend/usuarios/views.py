@@ -375,7 +375,7 @@ class GoogleLoginView(APIView):
             requiere_perfil = False
             if not user.is_staff and not user.is_superuser:
                 if email.endswith('@est.ulsa.edu.ni'):
-                    if not user.carnet or not user.carrera:
+                    if not user.carnet or not user.carrera or not user.ano_cursado:
                         requiere_perfil = True
 
             return Response({
@@ -403,16 +403,22 @@ class CompletarPerfilView(APIView):
         user = request.user
         carnet = request.data.get('carnet')
         carrera = request.data.get('carrera')
+        ano_cursado = request.data.get('ano_cursado')
 
-        if not carnet or not carrera:
-            return Response({'detail': 'Carnet y carrera son obligatorios.'}, status=400)
+        if not carnet or not carrera or not ano_cursado:
+            return Response({'detail': 'Carnet, carrera y año cursado son obligatorios.'}, status=400)
 
         carnet_regex = r'^\d{2}-[a-zA-Z0-9\-]{5,}$'
         if not re.match(carnet_regex, carnet):
             return Response({'detail': 'El formato del carnet es inválido.'}, status=400)
 
+        valid_anos = ['1', '2', '3', '4', '5']
+        if str(ano_cursado) not in valid_anos:
+            return Response({'detail': 'El año cursado debe ser entre 1 y 5.'}, status=400)
+
         user.carnet = carnet
         user.carrera = carrera
-        user.save(update_fields=['carnet', 'carrera'])
+        user.ano_cursado = str(ano_cursado)
+        user.save(update_fields=['carnet', 'carrera', 'ano_cursado'])
 
         return Response({'detail': 'Perfil actualizado correctamente.'})
