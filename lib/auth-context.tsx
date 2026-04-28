@@ -67,6 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const currentUser = await fetchCurrentUser();
         if (isMounted) {
           setUser(currentUser);
+          // Redirect students with incomplete profiles
+          if (currentUser.requiere_completar_perfil && typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/completar-perfil') {
+              window.location.href = '/completar-perfil';
+            }
+          }
         }
       } catch {
         clearSession();

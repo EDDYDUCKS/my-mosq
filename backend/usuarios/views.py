@@ -95,11 +95,20 @@ class CurrentUserAPIView(APIView):
 
     def get(self, request):
         user = request.user
+        
+        # Check if student needs to complete profile
+        requiere_perfil = False
+        if not user.is_staff and not user.is_superuser:
+            if user.email and user.email.endswith('@est.ulsa.edu.ni'):
+                if not user.carnet or not user.carrera or not user.ano_cursado:
+                    requiere_perfil = True
+        
         return Response({
             'id': str(user.id),
             'email': user.email,
             'name': f"{user.first_name} {user.last_name}".strip() or user.username,
             'role': 'admin' if (user.is_staff or user.is_superuser) else 'student',
+            'requiere_completar_perfil': requiere_perfil,
         })
 
 # ==========================================
@@ -154,11 +163,19 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         serializer.save(estado='PENDIENTE')
 
     def perform_update(self, serializer):
-        if not (self.request.user.is_staff or self.request.user.is_superuser):
-            raise PermissionDenied('Solo administradores pueden actualizar préstamos.')
-
         estado_actual = serializer.instance.estado
         nuevo_estado = serializer.validated_data.get('estado', estado_actual)
+
+        # Permitir a estudiantes cancelar sus propios préstamos pendientes
+        if not (self.request.user.is_staff or self.request.user.is_superuser):
+            if (serializer.instance.estudiante == self.request.user
+                    and estado_actual == 'PENDIENTE'
+                    and nuevo_estado == 'RECHAZADO'):
+                serializer.instance.estado = 'RECHAZADO'
+                serializer.instance.save(update_fields=['estado'])
+                return
+            raise PermissionDenied('Solo administradores pueden actualizar préstamos.')
+
         save_kwargs = {}
 
         if nuevo_estado == 'ACTIVO' and estado_actual != 'ACTIVO':

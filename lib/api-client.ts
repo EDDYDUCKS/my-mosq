@@ -322,8 +322,8 @@ export async function loginWithApi(email: string, password: string): Promise<Bac
   });
 }
 
-export async function fetchCurrentUser(): Promise<User> {
-  return apiRequest<User>('/auth/me/');
+export async function fetchCurrentUser(): Promise<User & { requiere_completar_perfil?: boolean }> {
+  return apiRequest<User & { requiere_completar_perfil?: boolean }>('/auth/me/');
 }
 
 export async function fetchEquipment(): Promise<Equipment[]> {
@@ -438,9 +438,18 @@ export async function markLoanAsReturned(loanGroupId: string): Promise<void> {
 }
 
 export async function cancelLoan(loanId: string): Promise<void> {
-  await apiRequest(`/prestamos/${loanId}/cancelar/`, {
-    method: 'POST',
-  });
+  try {
+    // Try dedicated cancel endpoint first
+    await apiRequest(`/prestamos/${loanId}/cancelar/`, {
+      method: 'POST',
+    });
+  } catch {
+    // Fallback: use PATCH to set status to RECHAZADO
+    await apiRequest(`/prestamos/${loanId}/`, {
+      method: 'PATCH',
+      body: { estado: 'RECHAZADO' },
+    });
+  }
 }
 
 export async function fetchSanctions(): Promise<Sanction[]> {
