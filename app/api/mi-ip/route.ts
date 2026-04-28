@@ -12,8 +12,8 @@ export function GET(req: NextRequest) {
     ip_permitida: process.env.ALLOWED_IPS ?? '208.96.129.55',
     acceso: detected === '127.0.0.1' || detected === '::1'
       ? 'PERMITIDO (localhost/desarrollo)'
-      : (process.env.ALLOWED_IPS ?? '208.96.129.55').split(',').some(a =>
+      : (process.env.ALLOWED_IPS === '*' || (process.env.ALLOWED_IPS ?? '208.96.129.55').split(',').some(a =>
           a.endsWith('.') ? detected.startsWith(a) : detected === a.trim()
-        ) ? 'PERMITIDO (red universidad)' : 'BLOQUEADO',
+        )) ? 'PERMITIDO (red universidad)' : 'BLOQUEADO',
   });
 }

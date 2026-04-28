@@ -21,12 +21,13 @@ function getClientIp(req: NextRequest): string {
 
 function isAllowed(ip: string): boolean {
   if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('::ffff:127.')) return true;
+  if (ALLOWED.includes('*')) return true;
   return ALLOWED.some(allowed =>
     allowed.endsWith('.') ? ip.startsWith(allowed) : ip === allowed
   );
 }
 
-export function proxy(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Dejar pasar rutas públicas y assets
