@@ -24,6 +24,22 @@ function EsperaContent() {
     if (loanId) localStorage.setItem(PENDING_LOAN_KEY, loanId);
   }, [loanId]);
 
+  // Bloquear botón "atrás" del navegador mientras esperamos
+  useEffect(() => {
+    if (screen !== 'waiting') return;
+
+    // Push a dummy state so pressing back doesn't leave
+    window.history.pushState({ mosqWaiting: true }, '');
+
+    const handlePopState = () => {
+      // Re-push to trap user in this screen
+      window.history.pushState({ mosqWaiting: true }, '');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [screen]);
+
   // Polling cada 5 segundos
   const poll = useCallback(async () => {
     if (!loanId) return;
