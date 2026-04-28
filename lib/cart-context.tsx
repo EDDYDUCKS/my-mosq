@@ -7,7 +7,7 @@ export type CartItem = {
   name: string;
   category: string;
   quantity: number;
-  dueDate: string;
+  dueDate?: string;
   notes?: string;
   equipment: Equipment;
   [key: string]: any;

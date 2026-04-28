@@ -14,9 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2 } from 'lucide-react';
 
 interface BorrowDialogProps {
   equipment: Equipment | null;
@@ -25,10 +23,8 @@ interface BorrowDialogProps {
 }
 
 export function BorrowDialog({ equipment, open, onOpenChange }: BorrowDialogProps) {
-  const { addToCart, cart } = useCart();
+  const { addToCart } = useCart();
   const [quantity, setQuantity] = useState('1');
-  const [dueDate, setDueDate] = useState('');
-  const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,41 +32,28 @@ export function BorrowDialog({ equipment, open, onOpenChange }: BorrowDialogProp
     
     if (!equipment) return;
 
-    // Agregar al carrito
     addToCart({
       id: equipment.id,
       name: equipment.name,
       category: equipment.category,
       quantity: parseInt(quantity),
-      dueDate,
-      notes,
       equipment,
     });
 
     setSubmitted(true);
 
-    // Reset form after 2 seconds
     setTimeout(() => {
       setQuantity('1');
-      setDueDate('');
-      setNotes('');
       setSubmitted(false);
       onOpenChange(false);
-    }, 2000);
+    }, 1500);
   };
 
   if (!equipment) return null;
 
-  const minDate = new Date();
-  const minDateStr = minDate.toISOString().split('T')[0];
-  
-  const maxDate = new Date();
-  maxDate.setDate(maxDate.getDate() + 2);
-  const maxDateStr = maxDate.toISOString().split('T')[0];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Agregar al Carrito</DialogTitle>
           <DialogDescription>
@@ -82,9 +65,9 @@ export function BorrowDialog({ equipment, open, onOpenChange }: BorrowDialogProp
           <div className="py-8 text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
             <div>
-              <p className="font-semibold text-foreground">Agregado al Carrito</p>
+              <p className="font-semibold text-foreground">¡Agregado al Carrito!</p>
               <p className="text-sm text-muted-foreground">
-                El equipo ha sido agregado. Puedes continuar agregando más equipos o proceder al carrito.
+                Puedes seguir agregando equipos o ir al carrito para enviar tu solicitud.
               </p>
             </div>
           </div>
@@ -107,38 +90,9 @@ export function BorrowDialog({ equipment, open, onOpenChange }: BorrowDialogProp
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="due-date">Fecha de Devolución</Label>
-              <Input
-                id="due-date"
-                type="date"
-                min={minDateStr}
-                max={maxDateStr}
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="border-input"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notas (Opcional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="¿Para qué actividad necesitas el equipo?"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="border-input resize-none"
-                rows={3}
-              />
-            </div>
-
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Asegúrate de devolver el equipo en condiciones adecuadas.
-              </AlertDescription>
-            </Alert>
+            <p className="text-xs text-muted-foreground bg-muted rounded-lg p-3">
+              💡 La fecha de devolución y notas se configuran al momento de enviar la solicitud desde el carrito.
+            </p>
 
             <DialogFooter className="gap-2">
               <Button

@@ -6,6 +6,9 @@ import { useCart } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
 import { createLoan } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Trash2, ShoppingCart } from 'lucide-react';
@@ -18,6 +21,8 @@ export const Cart: React.FC = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [notes, setNotes] = useState('');
 
   if (cart.length === 0) {
     return (
@@ -31,6 +36,13 @@ export const Cart: React.FC = () => {
     );
   }
 
+  const minDate = new Date();
+  const minDateStr = minDate.toISOString().split('T')[0];
+  
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 2);
+  const maxDateStr = maxDate.toISOString().split('T')[0];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -40,17 +52,16 @@ export const Cart: React.FC = () => {
       return;
     }
 
+    if (!dueDate) {
+      setError('Debes seleccionar una fecha de devolución.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const latestDueDate = cart
-        .map((item) => item.dueDate)
-        .filter(Boolean)
-        .sort()
-        .at(-1);
-
       const { id } = await createLoan({
         estudiante: Number(user.id),
-        fecha_devolucion: latestDueDate,
+        fecha_devolucion: dueDate,
         detalles: cart.map((item) => ({
           equipo: Number(item.equipment.id),
           cantidad: item.quantity,
@@ -61,7 +72,6 @@ export const Cart: React.FC = () => {
         throw new Error('El servidor no retornó el ID del préstamo. Contacta al administrador.');
       }
 
-      // Guardar para persistencia y redirigir a la pantalla de espera
       localStorage.setItem(PENDING_LOAN_KEY, String(id));
       clearCart();
       router.push(`/espera/${id}`);
@@ -70,7 +80,6 @@ export const Cart: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-
 
   return (
     <Card>
@@ -84,40 +93,69 @@ export const Cart: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Items List */}
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            <p className="text-sm font-semibold text-foreground mb-3">Equipos en el carrito:</p>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Equipos seleccionados</p>
             {cart.map((item) => (
               <div
                 key={item.id}
-                className="flex items-start justify-between gap-3 p-3 bg-muted rounded-lg border border-border"
+                className="flex items-center justify-between gap-3 p-3 bg-muted rounded-lg border border-border"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">{item.name}</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                      Cantidad: {item.quantity}
-                    </span>
-                    <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
-                      Devolución: {new Date(item.dueDate).toLocaleDateString('es-NI')}
-                    </span>
-                  </div>
-                  {item.notes && (
-                    <p className="text-xs text-muted-foreground mt-2 italic">{item.notes}</p>
-                  )}
+                  <p className="font-medium text-foreground text-sm truncate">{item.name}</p>
+                  <span className="text-xs text-muted-foreground">
+                    Cantidad: {item.quantity}
+                  </span>
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   variant="ghost"
                   onClick={() => removeFromCart(item.id)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             ))}
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-border" />
+
+          {/* Checkout Fields */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Detalles de la solicitud</p>
+
+            <div className="space-y-2">
+              <Label htmlFor="checkout-due-date">Fecha de Devolución *</Label>
+              <Input
+                id="checkout-due-date"
+                type="date"
+                min={minDateStr}
+                max={maxDateStr}
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="border-input"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Máximo 2 días a partir de hoy
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="checkout-notes">Notas (Opcional)</Label>
+              <Textarea
+                id="checkout-notes"
+                placeholder="¿Para qué actividad necesitas los equipos?"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="border-input resize-none"
+                rows={2}
+              />
+            </div>
           </div>
 
           {error && (
@@ -134,7 +172,7 @@ export const Cart: React.FC = () => {
             </AlertDescription>
           </Alert>
 
-          <div className="flex gap-2 pt-4">
+          <div className="flex gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
