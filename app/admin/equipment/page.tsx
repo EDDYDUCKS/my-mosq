@@ -157,7 +157,7 @@ export default function AdminEquipmentPage() {
 
       <main className="min-h-screen bg-background lg:pl-72">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 mb-8">
             <div>
               <h2 className="text-3xl font-bold text-foreground">Equipos</h2>
               <p className="text-muted-foreground">

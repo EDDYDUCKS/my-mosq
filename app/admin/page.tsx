@@ -53,14 +53,31 @@ export default function AdminDashboard() {
             try {
               // Sonido generado por código (no depende de URLs externas)
               const ctx = new AudioContext();
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.frequency.setValueAtTime(880, ctx.currentTime);
-              gain.gain.setValueAtTime(0.3, ctx.currentTime);
-              osc.start();
-              osc.stop(ctx.currentTime + 0.25);
+              
+              // Función para tocar una nota
+              const playNote = (freq: number, startTime: number, duration: number) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(freq, startTime);
+                
+                // Envolvente de volumen para que suene agradable
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration - 0.05);
+                
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+              };
+
+              const t = ctx.currentTime;
+              // Secuencia: Do5 - Mi5 - Sol5 - Do6 (Arpegio ascendente)
+              playNote(523.25, t, 0.15);       // C5
+              playNote(659.25, t + 0.15, 0.15); // E5
+              playNote(783.99, t + 0.30, 0.15); // G5
+              playNote(1046.50, t + 0.45, 0.4); // C6 (más larga)
             } catch (e) {
               console.error('Audio play failed', e);
             }
