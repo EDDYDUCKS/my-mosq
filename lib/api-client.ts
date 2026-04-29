@@ -16,6 +16,8 @@ interface RequestOptions {
 interface BackendEquipo {
   id: number;
   nombre: string;
+  marca_modelo: string | null;
+  color: string | null;
   descripcion: string | null;
   imagen_url: string | null;
   cantidad_total: number;
@@ -239,6 +241,8 @@ function mapEquipment(item: BackendEquipo): Equipment {
   return {
     id: String(item.id),
     name: item.nombre,
+    marca_modelo: item.marca_modelo || undefined,
+    color: item.color || undefined,
     category: 'General',
     description: item.descripcion || 'Sin descripción',
     available: item.cantidad_disponible,

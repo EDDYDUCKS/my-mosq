@@ -38,6 +38,8 @@ class Estudiante(AbstractUser):
 # --- MODELO EQUIPO ---
 class Equipo(models.Model):
     nombre = models.CharField(max_length=100)
+    marca_modelo = models.CharField(max_length=150, blank=True, null=True, help_text='Marca, modelo o numeración (Ej: MOLTEN F523 #5)')
+    color = models.CharField(max_length=100, blank=True, null=True)
     descripcion = models.TextField(blank=True, null=True)
     imagen = models.ImageField(upload_to='equipos/', blank=True, null=True)
     cantidad_total = models.PositiveIntegerField(default=1)

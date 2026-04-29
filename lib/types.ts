@@ -18,12 +18,14 @@ export interface AuthContextType {
 export interface Equipment {
   id: string;
   name: string;
+  marca_modelo?: string;
+  color?: string;
   category: string;
   description: string;
   available: number;
   total: number;
-  imageUrl: string;
-  condition: 'excellent' | 'good' | 'fair';
+  imageUrl?: string;
+  condition: 'good' | 'fair' | 'poor' | 'maintenance';
 }
 
 export interface LoanRequest {

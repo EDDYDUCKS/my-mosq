@@ -331,7 +331,7 @@ def exportar_reporte_excel(request):
                 nombre_persona,
                 p.estudiante.carrera or 'N/A',
                 p.estudiante.ano_cursado or 'N/A',
-                detalle.equipo.nombre, # El nombre de lo que prestó
+                f"{detalle.equipo.nombre}{f' ({detalle.equipo.marca_modelo})' if detalle.equipo.marca_modelo else ''}{f' [{detalle.equipo.color}]' if detalle.equipo.color else ''}", # Descripción del equipo
                 detalle.cantidad,      # <--- ¡LA CANTIDAD REAL!
                 entregado_por,
                 recibido_por,

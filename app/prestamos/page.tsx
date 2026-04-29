@@ -48,7 +48,22 @@ function PrestamosPageContent() {
     return () => { isMounted = false; };
   }, [user]);
 
-  const handleBorrow = (eq: Equipment) => {
+  const groupedEquipment = useMemo(() => {
+    const groups = new Map<string, Equipment & { variants: Equipment[] }>();
+    equipment.forEach(eq => {
+      if (groups.has(eq.name)) {
+        const existing = groups.get(eq.name)!;
+        existing.available += eq.available;
+        existing.total += eq.total;
+        existing.variants.push(eq);
+      } else {
+        groups.set(eq.name, { ...eq, variants: [eq] });
+      }
+    });
+    return Array.from(groups.values());
+  }, [equipment]);
+
+  const handleBorrow = (eq: Equipment & { variants?: Equipment[] }) => {
     setSelectedEquipment(eq);
     setBorrowDialogOpen(true);
   };
@@ -80,14 +95,14 @@ function PrestamosPageContent() {
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {equipment.map((eq) => (
+                  {groupedEquipment.map((eq) => (
                     <EquipmentCardMinimal
                       key={eq.id}
-                      equipment={eq}
-                      onBorrow={handleBorrow}
+                      equipment={eq as Equipment}
+                      onBorrow={() => handleBorrow(eq)}
                     />
                   ))}
-                  {!loadingData && equipment.length === 0 && (
+                  {!loadingData && groupedEquipment.length === 0 && (
                     <div className="col-span-full text-center py-8 text-muted-foreground">
                       No hay equipos disponibles en este momento.
                     </div>

@@ -201,6 +201,12 @@ export default function AdminEquipmentPage() {
                       <CardDescription className="text-sm mt-1 text-muted-foreground">
                         {item.description}
                       </CardDescription>
+                      {(item.marca_modelo || item.color) && (
+                        <div className="mt-2 text-xs text-muted-foreground flex flex-col gap-0.5">
+                          {item.marca_modelo && <span><span className="font-medium text-foreground">Modelo:</span> {item.marca_modelo}</span>}
+                          {item.color && <span><span className="font-medium text-foreground">Color:</span> {item.color}</span>}
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-4">
@@ -335,6 +341,30 @@ export default function AdminEquipmentPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="border-input"
               />
+            </div>
+
+            {/* Campos: Modelo y Color */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="marca_modelo">Marca / Modelo</Label>
+                <Input
+                  id="marca_modelo"
+                  placeholder="Ej: MOLTEN F523"
+                  value={formData.marca_modelo || ''}
+                  onChange={(e) => setFormData({ ...formData, marca_modelo: e.target.value })}
+                  className="border-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="color">Color</Label>
+                <Input
+                  id="color"
+                  placeholder="Ej: Blanco con azul"
+                  value={formData.color || ''}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="border-input"
+                />
+              </div>
             </div>
 
             {/* Campos: Disponibles / Total */}

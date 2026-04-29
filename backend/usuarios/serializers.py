@@ -20,7 +20,7 @@ class EquipoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Equipo
-        fields = ['id', 'nombre', 'descripcion', 'imagen', 'imagen_url', 'cantidad_total', 'cantidad_disponible']
+        fields = ['id', 'nombre', 'marca_modelo', 'color', 'descripcion', 'imagen', 'imagen_url', 'cantidad_total', 'cantidad_disponible']
 
     def get_imagen_url(self, obj):
         if obj.imagen:
