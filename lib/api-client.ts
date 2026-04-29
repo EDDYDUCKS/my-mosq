@@ -99,9 +99,7 @@ function resolveEquipmentImage(name: string): string {
     return toPublicPath('reddefutbol.png');
   }
 
-  if (normalizedName.includes('guante') && (normalizedName.includes('futbol') || normalizedName.includes('fútbol'))) {
-    return toPublicPath('guantefutbol.png');
-  }
+
 
   if (
     normalizedName.includes('baloncesto')
@@ -124,6 +122,7 @@ function resolveEquipmentImage(name: string): string {
   if (
     normalizedName.includes('softball')
     || normalizedName.includes('softbol')
+    || normalizedName.includes('sóftbol')
     || normalizedName.includes('pelota de softball')
     || normalizedName.includes('pelota de softbol')
     || normalizedName.includes('bola softball')
@@ -131,6 +130,10 @@ function resolveEquipmentImage(name: string): string {
     || normalizedName.includes('bola de softbol')
   ) {
     return toPublicPath('bolasoftball.png');
+  }
+
+  if (normalizedName.includes('guante') && (normalizedName.includes('futbol') || normalizedName.includes('fútbol') || normalizedName.includes('portero'))) {
+    return toPublicPath('guantefutbol.png');
   }
 
   if (normalizedName.includes('futbol') || normalizedName.includes('fútbol')) {
