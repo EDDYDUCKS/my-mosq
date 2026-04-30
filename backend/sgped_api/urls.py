@@ -9,6 +9,12 @@ urlpatterns = [
     path('api/', include('usuarios.urls')), 
 ]
 
-# En desarrollo, Django sirve los archivos multimedia (imágenes subidas)
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Permitir que Django sirva archivos multimedia (imágenes) en producción
+from django.urls import re_path
+from django.views.static import serve
+
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {
+        'document_root': settings.MEDIA_ROOT,
+    }),
+]
