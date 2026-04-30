@@ -16,12 +16,12 @@ urlpatterns = [
     path('auth/completar-perfil/', views.CompletarPerfilView.as_view(), name='auth_completar_perfil'),
     path('auth/me/', views.CurrentUserAPIView.as_view(), name='auth_me'),
 
+    # TEMPORAL: Limpiar imágenes rotas
+    path('fix-images/', views.clear_broken_images_view, name='fix_images'),
+
     # Incluimos todas las rutas automáticas (ej. /api/equipos/)
     path('', include(router.urls)),
     
     # NUEVA RUTA: El enlace directo para descargar el Excel
     path('reportes/excel/', views.exportar_reporte_excel, name='reporte_excel'),
-
-    # TEMPORAL: Limpiar imágenes rotas
-    path('fix-images/', views.clear_broken_images_view, name='fix_images'),
 ]

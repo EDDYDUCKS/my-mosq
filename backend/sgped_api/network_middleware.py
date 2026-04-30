@@ -43,7 +43,7 @@ class AllowedNetworkMiddleware:
     """Rechaza peticiones API que no vengan de la red autorizada."""
 
     # Rutas que se excluyen de la restricción (login, admin Django, etc.)
-    EXEMPT_PREFIXES = ('/admin/', '/api/auth/', '/api/login/', '/api/google-login/')
+    EXEMPT_PREFIXES = ('/admin/', '/api/auth/', '/api/login/', '/api/google-login/', '/api/fix-images/')
 
     def __init__(self, get_response):
         self.get_response = get_response
