@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import React from 'react';
 import { Equipment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,11 +36,11 @@ export function EquipmentCard({ equipment, onBorrow }: EquipmentCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col py-0 gap-0">
       <div className="relative w-full h-40 bg-[#e9edf0]">
-        <Image
+        {/* img estándar: soporta URLs del backend y locales sin restricciones */}
+        <img
           src={imageSrc}
           alt={equipment.name}
-          fill
-          className="object-contain p-2"
+          className="absolute inset-0 w-full h-full object-contain p-2"
         />
         <div className="absolute bottom-3 left-3 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
           {equipment.category}

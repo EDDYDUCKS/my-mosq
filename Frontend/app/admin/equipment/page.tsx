@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ProtectedLayout } from '@/components/protected-layout';
 import { AppHeader } from '@/components/app-header';
 import { createEquipment, deleteEquipment, fetchEquipment, updateEquipment } from '@/lib/api-client';
@@ -188,11 +188,11 @@ export default function AdminEquipmentPage() {
               <div key={item.id} className="aspect-square">
                 <Card className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow py-0 gap-0">
                   <div className="relative h-1/2 bg-[#e9edf0]">
-                    <Image
+                    {/* Usamos <img> estándar para soportar URLs del backend y blobs sin restricciones de Next.js Image */}
+                    <img
                       src={item.imageUrl}
                       alt={item.name}
-                      fill
-                      className="object-contain p-2"
+                      className="absolute inset-0 w-full h-full object-contain p-2"
                     />
                     <div className="absolute bottom-3 left-3 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
                       {item.category}
@@ -287,11 +287,11 @@ export default function AdminEquipmentPage() {
               <Label>Imagen del equipo</Label>
               {imagePreviewUrl ? (
                 <div className="relative w-full h-40 rounded-lg border border-input overflow-hidden bg-[#e9edf0]">
-                  <Image
+                  {/* <img> estándar: soporta blob: URLs (createObjectURL) y URLs absolutas del backend */}
+                  <img
                     src={imagePreviewUrl}
                     alt="Vista previa"
-                    fill
-                    className="object-contain p-2"
+                    className="absolute inset-0 w-full h-full object-contain p-2"
                   />
                   <button
                     type="button"

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import React from 'react';
 import { Equipment } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,11 +18,11 @@ export function EquipmentCardMinimal({ equipment, onBorrow }: EquipmentCardMinim
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-green-100 dark:border-green-900 h-full flex flex-col bg-white dark:bg-slate-950 py-0 gap-0">
       {/* Image Section */}
       <div className="relative h-32 bg-[#e9edf0]">
-        <Image
+        {/* img estándar: soporta URLs del backend sin restricciones */}
+        <img
           src={imageSrc}
           alt={equipment.name}
-          fill
-          className="object-contain p-2"
+          className="absolute inset-0 w-full h-full object-contain p-2"
         />
       </div>
 
