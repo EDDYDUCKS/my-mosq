@@ -4,6 +4,7 @@ import React from 'react';
 import { Equipment } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { resolveEquipmentImage } from '@/lib/api-client';
 
 interface EquipmentCardMinimalProps {
   equipment: Equipment;
@@ -18,11 +19,17 @@ export function EquipmentCardMinimal({ equipment, onBorrow }: EquipmentCardMinim
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-green-100 dark:border-green-900 h-full flex flex-col bg-white dark:bg-slate-950 py-0 gap-0">
       {/* Image Section */}
       <div className="relative h-32 bg-[#e9edf0]">
-        {/* img estándar: soporta URLs del backend sin restricciones */}
+        {/* img estándar con fallback: si el archivo en Render fue borrado, cae al ícono local */}
         <img
           src={imageSrc}
           alt={equipment.name}
           className="absolute inset-0 w-full h-full object-contain p-2"
+          onError={(e) => {
+            const fallback = resolveEquipmentImage(equipment.name);
+            if (e.currentTarget.src !== window.location.origin + fallback) {
+              e.currentTarget.src = fallback;
+            }
+          }}
         />
       </div>
 

@@ -95,7 +95,7 @@ function stripAccents(str: string): string {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-function resolveEquipmentImage(name: string): string {
+export function resolveEquipmentImage(name: string): string {
   const normalizedName = stripAccents(name.toLowerCase());
 
   if (normalizedName.includes('red') && normalizedName.includes('futbol')) {

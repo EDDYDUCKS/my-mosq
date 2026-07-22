@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/lib/cart-context';
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
+import { resolveEquipmentImage } from '@/lib/api-client';
 
 interface EquipmentCardProps {
   equipment: Equipment;
@@ -36,11 +37,17 @@ export function EquipmentCard({ equipment, onBorrow }: EquipmentCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col py-0 gap-0">
       <div className="relative w-full h-40 bg-[#e9edf0]">
-        {/* img estándar: soporta URLs del backend y locales sin restricciones */}
+        {/* img estándar con fallback: si el archivo en Render fue borrado, cae al ícono local */}
         <img
           src={imageSrc}
           alt={equipment.name}
           className="absolute inset-0 w-full h-full object-contain p-2"
+          onError={(e) => {
+            const fallback = resolveEquipmentImage(equipment.name);
+            if (e.currentTarget.src !== window.location.origin + fallback) {
+              e.currentTarget.src = fallback;
+            }
+          }}
         />
         <div className="absolute bottom-3 left-3 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
           {equipment.category}

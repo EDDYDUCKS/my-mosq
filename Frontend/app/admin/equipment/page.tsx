@@ -4,7 +4,7 @@ import Image from 'next/image';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ProtectedLayout } from '@/components/protected-layout';
 import { AppHeader } from '@/components/app-header';
-import { createEquipment, deleteEquipment, fetchEquipment, updateEquipment } from '@/lib/api-client';
+import { createEquipment, deleteEquipment, fetchEquipment, updateEquipment, resolveEquipmentImage } from '@/lib/api-client';
 import { Equipment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -188,11 +188,17 @@ export default function AdminEquipmentPage() {
               <div key={item.id} className="aspect-square">
                 <Card className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow py-0 gap-0">
                   <div className="relative h-1/2 bg-[#e9edf0]">
-                    {/* Usamos <img> estándar para soportar URLs del backend y blobs sin restricciones de Next.js Image */}
+                    {/* img estándar con fallback: si el archivo en Render fue borrado, usa ícono local */}
                     <img
                       src={item.imageUrl}
                       alt={item.name}
                       className="absolute inset-0 w-full h-full object-contain p-2"
+                      onError={(e) => {
+                        const fallback = resolveEquipmentImage(item.name);
+                        if (e.currentTarget.src !== window.location.origin + fallback) {
+                          e.currentTarget.src = fallback;
+                        }
+                      }}
                     />
                     <div className="absolute bottom-3 left-3 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
                       {item.category}
