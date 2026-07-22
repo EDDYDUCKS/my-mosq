@@ -24,10 +24,15 @@ class EquipoSerializer(serializers.ModelSerializer):
 
     def get_imagen_url(self, obj):
         if obj.imagen:
+            url = obj.imagen.url
+            # Si la URL ya es absoluta (Supabase Storage), devolverla directamente.
+            # build_absolute_uri solo es necesario para rutas locales (/media/...).
+            if url.startswith('http'):
+                return url
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.imagen.url)
-            return obj.imagen.url
+                return request.build_absolute_uri(url)
+            return url
         return None
 
 # --- TRADUCTOR DE LOS DETALLES DEL CARRITO ---

@@ -157,9 +157,17 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # WhiteNoise compresión y caché de estáticos
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "sgped_api.supabase_storage.SupabaseStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # --- Archivos subidos por usuarios (imágenes de equipos, etc.) ---
+# MEDIA_URL y MEDIA_ROOT se mantienen como fallback para dev local
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
