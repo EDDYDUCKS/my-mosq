@@ -8,13 +8,17 @@ de Render, donde los archivos se pierden en cada deploy/reinicio.
 Requiere dos variables de entorno:
   SUPABASE_URL          – ej. https://hoiebtxvwbupkxinmtgl.supabase.co
   SUPABASE_SERVICE_KEY  – la service_role key del proyecto
+
+Si las variables NO están configuradas, cae automáticamente a FileSystemStorage
+(disco local de Django) para que el desarrollo local siga funcionando.
 """
 
 import os
 import uuid
 import requests as http_requests
-from django.core.files.storage import Storage
+from django.core.files.storage import Storage, FileSystemStorage
 from django.core.files.base import ContentFile
+from django.conf import settings as django_settings
 
 
 class SupabaseStorage(Storage):
@@ -46,11 +50,18 @@ class SupabaseStorage(Storage):
 
     # --- API de Django Storage ---
 
+    def _get_fallback_storage(self):
+        """FileSystemStorage como fallback cuando Supabase no está configurado."""
+        return FileSystemStorage(
+            location=django_settings.MEDIA_ROOT,
+            base_url=django_settings.MEDIA_URL,
+        )
+
     def _save(self, name, content):
         """Sube el archivo a Supabase y devuelve la ruta almacenada."""
         if not self._is_configured:
-            # Sin credenciales (dev local): no subimos, solo guardamos el nombre
-            return name
+            # Sin credenciales: guardar en disco local con FileSystemStorage real
+            return self._get_fallback_storage()._save(name, content)
 
         # Nombre único para evitar colisiones
         ext = os.path.splitext(name)[1].lower() or '.jpg'
@@ -80,8 +91,8 @@ class SupabaseStorage(Storage):
         if name.startswith('http'):
             return name
         if not self._is_configured:
-            # dev local: devuelve ruta relativa para servir con Django
-            return f'/media/{name}'
+            # dev local / sin Supabase: usar FileSystemStorage para obtener la URL
+            return self._get_fallback_storage().url(name)
         return f"{self._url}/storage/v1/object/public/{self.BUCKET}/{name}"
 
     def exists(self, name):
