@@ -11,12 +11,14 @@ import { useCart } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
 import { fetchEquipment } from '@/lib/api-client';
 import { Equipment } from '@/lib/types';
-import { Home, FileText, ShoppingCart } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Home, FileText, ShoppingCart, Search } from 'lucide-react';
 
 function PrestamosPageContent() {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [borrowDialogOpen, setBorrowDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'catalog' | 'cart'>('catalog');
+  const [searchQuery, setSearchQuery] = useState('');
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const router = useRouter();
@@ -60,8 +62,18 @@ function PrestamosPageContent() {
         groups.set(eq.name, { ...eq, variants: [eq] });
       }
     });
-    return Array.from(groups.values());
-  }, [equipment]);
+    
+    const arrayGroups = Array.from(groups.values());
+    
+    // Filtrar por la búsqueda si existe
+    if (!searchQuery.trim()) return arrayGroups;
+    
+    const lowerQuery = searchQuery.toLowerCase();
+    return arrayGroups.filter(eq => 
+      eq.name.toLowerCase().includes(lowerQuery) || 
+      (eq.description && eq.description.toLowerCase().includes(lowerQuery))
+    );
+  }, [equipment, searchQuery]);
 
   const handleBorrow = (eq: Equipment & { variants?: Equipment[] }) => {
     setSelectedEquipment(eq);
@@ -88,12 +100,24 @@ function PrestamosPageContent() {
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-mobile-nav">
             {activeTab === 'catalog' && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Equipo Disponible</h2>
-                  <p className="text-sm sm:text-base text-muted-foreground">
-                    Selecciona un equipo para agregarlo al carrito
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Equipo Disponible</h2>
+                    <p className="text-sm sm:text-base text-muted-foreground">
+                      Selecciona un equipo para agregarlo al carrito
+                    </p>
+                  </div>
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nombre o descripción..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 w-full bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus-visible:ring-primary"
+                    />
+                  </div>
                 </div>
+                
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {groupedEquipment.map((eq) => (
                     <EquipmentCardMinimal
@@ -103,8 +127,12 @@ function PrestamosPageContent() {
                     />
                   ))}
                   {!loadingData && groupedEquipment.length === 0 && (
-                    <div className="col-span-full text-center py-8 text-muted-foreground">
-                      No hay equipos disponibles en este momento.
+                    <div className="col-span-full text-center py-12 text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                      {searchQuery ? (
+                        <>No se encontraron equipos que coincidan con "<strong>{searchQuery}</strong>".</>
+                      ) : (
+                        <>No hay equipos disponibles en este momento.</>
+                      )}
                     </div>
                   )}
                 </div>
