@@ -37,6 +37,8 @@ export default function AdminEquipmentPage() {
   const [formData, setFormData] = useState<Partial<Equipment>>({});
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Estado para la imagen
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -101,39 +103,56 @@ export default function AdminEquipmentPage() {
     const cantidadTotal = Number(formData.total || 0);
     const cantidadDisponible = Number(formData.available || 0);
 
-    if (!nombre || cantidadTotal < 0 || cantidadDisponible < 0) {
+    if (!nombre) {
+      setSaveError('El nombre del equipo es obligatorio.');
+      return;
+    }
+    if (cantidadTotal < 0 || cantidadDisponible < 0) {
+      setSaveError('Las cantidades no pueden ser negativas.');
       return;
     }
 
-    if (editingId && editingId !== 'new') {
-      const updated = await updateEquipment(editingId, {
-        nombre,
-        marca_modelo: formData.marca_modelo || '',
-        color: formData.color || '',
-        descripcion,
-        cantidad_total: cantidadTotal,
-        cantidad_disponible: cantidadDisponible,
-        imagen: selectedImageFile,
-      });
-      setEquipment((prev) => prev.map((item) => (item.id === editingId ? updated : item)));
-    } else {
-      const created = await createEquipment({
-        nombre,
-        marca_modelo: formData.marca_modelo || '',
-        color: formData.color || '',
-        descripcion,
-        cantidad_total: cantidadTotal,
-        cantidad_disponible: cantidadDisponible,
-        imagen: selectedImageFile,
-      });
-      setEquipment((prev) => [...prev, created]);
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      if (editingId && editingId !== 'new') {
+        const updated = await updateEquipment(editingId, {
+          nombre,
+          marca_modelo: formData.marca_modelo || '',
+          color: formData.color || '',
+          descripcion,
+          cantidad_total: cantidadTotal,
+          cantidad_disponible: cantidadDisponible,
+          imagen: selectedImageFile,
+        });
+        setEquipment((prev) => prev.map((item) => (item.id === editingId ? updated : item)));
+      } else {
+        const created = await createEquipment({
+          nombre,
+          marca_modelo: formData.marca_modelo || '',
+          color: formData.color || '',
+          descripcion,
+          cantidad_total: cantidadTotal,
+          cantidad_disponible: cantidadDisponible,
+          imagen: selectedImageFile,
+        });
+        setEquipment((prev) => [...prev, created]);
+      }
+      setEditingId(null);
+      setFormData({});
+      setIsAddingNew(false);
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
+      setSaveError(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar. Revisa tu conexión.';
+      setSaveError(msg);
+    } finally {
+      setIsSaving(false);
     }
-    setEditingId(null);
-    setFormData({});
-    setIsAddingNew(false);
-    setSelectedImageFile(null);
-    setImagePreviewUrl(null);
   };
+
 
   const handleDelete = async (id: string) => {
     await deleteEquipment(id);
@@ -413,15 +432,21 @@ export default function AdminEquipmentPage() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={handleDialogClose}>
+          <DialogFooter className="gap-2 flex-col items-stretch sm:flex-row sm:items-center">
+            {saveError && (
+              <p className="text-sm text-destructive flex-1 text-left">
+                ⚠️ {saveError}
+              </p>
+            )}
+            <Button variant="outline" onClick={handleDialogClose} disabled={isSaving}>
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
+              disabled={isSaving}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              Guardar
+              {isSaving ? 'Guardando...' : 'Guardar'}
             </Button>
           </DialogFooter>
         </DialogContent>
