@@ -77,7 +77,10 @@ class SupabaseStorage(Storage):
             data=file_data,
             timeout=30,
         )
-        resp.raise_for_status()
+        
+        if not resp.ok:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(f"Error de Supabase: {resp.status_code} - {resp.text}")
 
         # Retornamos la ruta relativa dentro del bucket.
         # Django guarda esto en el campo `imagen` de la BD.
