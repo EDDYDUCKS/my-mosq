@@ -21,21 +21,33 @@ def _get_client_ip(request):
     return request.META.get('REMOTE_ADDR', '')
 
 
-def _is_allowed(ip: str, allowed: list[str], debug: bool) -> bool:
+import ipaddress
+
+def _is_allowed(ip_str: str, allowed: list[str], debug: bool) -> bool:
     # Si la lista contiene '*', permitir todo (ideal para pruebas o demostraciones)
     if '*' in allowed:
         return True
         
     # En modo DEBUG, siempre permitir localhost
-    if debug and ip in ('127.0.0.1', '::1', 'localhost'):
+    if debug and ip_str in ('127.0.0.1', '::1', 'localhost'):
         return True
+        
+    try:
+        client_ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
+        
     for entry in allowed:
-        if entry.endswith('.'):          # prefijo de subred
-            if ip.startswith(entry):
+        try:
+            # Soporta tanto IP exacta (190.212.45.1) como rango (190.212.45.0/24)
+            network = ipaddress.ip_network(entry, strict=False)
+            if client_ip in network:
                 return True
-        else:                            # IP exacta
-            if ip == entry:
+        except ValueError:
+            # Fallback a coincidencia exacta de string por si acaso
+            if ip_str == entry:
                 return True
+                
     return False
 
 
@@ -43,7 +55,7 @@ class AllowedNetworkMiddleware:
     """Rechaza peticiones API que no vengan de la red autorizada."""
 
     # Rutas que se excluyen de la restricción (login, admin Django, etc.)
-    EXEMPT_PREFIXES = ('/admin/', '/api/auth/', '/api/login/', '/api/google-login/', '/api/fix-images/', '/media/', '/api/equipos/')
+    EXEMPT_PREFIXES = ('/admin/', '/api/auth/', '/api/login/', '/api/google-login/', '/api/fix-images/', '/media/', '/api/equipos/', '/api/my-ip/')
 
     def __init__(self, get_response):
         self.get_response = get_response

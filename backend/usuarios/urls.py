@@ -24,4 +24,7 @@ urlpatterns = [
     
     # NUEVA RUTA: El enlace directo para descargar el Excel
     path('reportes/excel/', views.exportar_reporte_excel, name='reporte_excel'),
+
+    # NUEVA RUTA: Diagnóstico de IP
+    path('my-ip/', views.my_ip, name='my_ip'),
 ]

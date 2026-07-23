@@ -147,12 +147,21 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             save_kwargs = {}
             if estado == 'ACTIVO':
                 save_kwargs['entregado_por'] = self.request.user
+            
+            # Check sanction if assigning to a student
+            estudiante = serializer.validated_data.get('estudiante')
+            if estudiante and estudiante.sancionado:
+                raise PermissionDenied(f'El estudiante {estudiante.first_name} tiene una sanción activa y no puede recibir préstamos.')
+                
             serializer.save(**save_kwargs)
             return
 
         estudiante = serializer.validated_data.get('estudiante')
         if not estudiante or estudiante.id != self.request.user.id:
             raise PermissionDenied('Solo puedes crear préstamos para tu propio usuario.')
+
+        if self.request.user.sancionado:
+            raise PermissionDenied('No puedes solicitar préstamos porque tienes una sanción activa.')
 
         # Solo los estudiantes (@est.ulsa.edu.ni) deben tener carnet y carrera
         # Los profesores (@ac.ulsa.edu.ni) y staff (@ulsa.edu.ni) pueden prestar sin esos datos
@@ -457,3 +466,18 @@ def clear_broken_images_view(request):
             e.imagen = None
             e.save()
     return JsonResponse({"cleared_ids": cleared})
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def my_ip(request):
+    """
+    Ruta pública para diagnosticar problemas de red.
+    Devuelve la IP pública real que el servidor (Render) está detectando.
+    """
+    from sgped_api.network_middleware import _get_client_ip
+    ip = _get_client_ip(request)
+    return Response({
+        'ip_detectada': ip,
+        'mensaje': 'Usa esta IP para configurar ALLOWED_IPS en Render. También soporta CIDR (ej: 190.212.45.0/24)'
+    })
