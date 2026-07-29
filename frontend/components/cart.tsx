@@ -15,6 +15,18 @@ import { AlertCircle, Trash2, ShoppingCart } from 'lucide-react';
 
 const PENDING_LOAN_KEY = 'mosq_pending_loan_id';
 
+/**
+ * Convierte un Date al formato YYYY-MM-DD usando la hora LOCAL del navegador.
+ * NO usar toISOString() porque convierte a UTC y en Nicaragua (UTC-6)
+ * puede devolver el día anterior (ej. 23:00 local → día siguiente en UTC).
+ */
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const Cart: React.FC = () => {
   const { cart, removeFromCart, clearCart } = useCart();
   const { user } = useAuth();
@@ -37,11 +49,11 @@ export const Cart: React.FC = () => {
   }
 
   const minDate = new Date();
-  const minDateStr = minDate.toISOString().split('T')[0];
+  const minDateStr = toLocalDateString(minDate);
   
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + 2);
-  const maxDateStr = maxDate.toISOString().split('T')[0];
+  const maxDateStr = toLocalDateString(maxDate);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,9 +71,12 @@ export const Cart: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      // Aseguramos que la fecha se envíe como medianoche hora local de Nicaragua
+      // agregando T23:59:00 para que Django la guarde como el día correcto
+      const fechaDevolucionISO = `${dueDate}T23:59:00`;
       const { id } = await createLoan({
         estudiante: Number(user.id),
-        fecha_devolucion: dueDate,
+        fecha_devolucion: fechaDevolucionISO,
         observaciones: notes || undefined,
         detalles: cart.map((item) => ({
           equipo: Number(item.equipment.id),

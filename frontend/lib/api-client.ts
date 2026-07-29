@@ -95,6 +95,23 @@ function stripAccents(str: string): string {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+/**
+ * Parsea una fecha del backend de forma segura respecto a la zona horaria.
+ * El backend puede devolver:
+ *   - "2026-07-28" (solo fecha) → new Date() la interpreta como UTC midnight → un día antes en Nicaragua
+ *   - "2026-07-28T23:59:00" (con hora) → new Date() la interpreta como hora local ✓
+ * Solución: si no tiene hora, agregar T12:00:00 para anclarla al mediodía local.
+ */
+function parseDateSafe(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  // Si ya tiene hora (contiene 'T' o espacio), parsear directo
+  if (dateStr.includes('T') || dateStr.includes(' ')) {
+    return new Date(dateStr);
+  }
+  // Solo fecha (YYYY-MM-DD): anclar a mediodia local para evitar el salto de zona horaria
+  return new Date(`${dateStr}T12:00:00`);
+}
+
 export function resolveEquipmentImage(name: string): string {
   const normalizedName = stripAccents(name.toLowerCase());
 
@@ -283,9 +300,9 @@ function mapLoans(prestamos: BackendPrestamo[]): LoanRequest[] {
         ? `${detalle.equipo_detalle.nombre}${detalle.equipo_detalle.marca_modelo ? ` (${detalle.equipo_detalle.marca_modelo})` : ''}${detalle.equipo_detalle.color ? ` [${detalle.equipo_detalle.color}]` : ''}`
         : `Equipo #${detalle.equipo}`,
       quantity: detalle.cantidad,
-      requestDate: new Date(prestamo.fecha_prestamo),
-      dueDate: new Date(prestamo.fecha_devolucion || prestamo.fecha_prestamo),
-      receivedAt: prestamo.fecha_recepcion ? new Date(prestamo.fecha_recepcion) : undefined,
+      requestDate: parseDateSafe(prestamo.fecha_prestamo),
+      dueDate: parseDateSafe(prestamo.fecha_devolucion || prestamo.fecha_prestamo),
+      receivedAt: prestamo.fecha_recepcion ? parseDateSafe(prestamo.fecha_recepcion) : undefined,
       status: mapLoanStatus(prestamo.estado),
       backendStatus: prestamo.estado,
       deliveredByName,
