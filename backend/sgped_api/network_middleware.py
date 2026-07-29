@@ -55,7 +55,23 @@ class AllowedNetworkMiddleware:
     """Rechaza peticiones API que no vengan de la red autorizada."""
 
     # Rutas que se excluyen de la restricción (login, admin Django, etc.)
-    EXEMPT_PREFIXES = ('/admin/', '/api/auth/', '/api/login/', '/api/google-login/', '/api/fix-images/', '/media/', '/api/equipos/', '/api/my-ip/')
+    # NOTA: Las rutas de admin (/api/prestamos/, /api/sanciones/) quedan exentas
+    # porque los administradores necesitan acceder desde cualquier lugar.
+    # La seguridad real está en la autenticación por token (IsAuthenticated/IsAdminUser).
+    EXEMPT_PREFIXES = (
+        '/admin/',
+        '/api/auth/',
+        '/api/login/',
+        '/api/google-login/',
+        '/api/fix-images/',
+        '/media/',
+        '/api/equipos/',
+        '/api/my-ip/',
+        '/api/prestamos/',   # Protegido por token JWT — admin ve todo, estudiante solo lo suyo
+        '/api/sanciones/',   # Solo accesible con token válido
+        '/api/estudiantes/', # Solo accesible con token de admin
+        '/api/reportes/',    # Solo accesible con token de admin
+    )
 
     def __init__(self, get_response):
         self.get_response = get_response
