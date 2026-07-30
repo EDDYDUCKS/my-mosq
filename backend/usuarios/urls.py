@@ -8,6 +8,7 @@ router.register(r'estudiantes', views.EstudianteViewSet)
 router.register(r'equipos', views.EquipoViewSet)
 router.register(r'prestamos', views.PrestamoViewSet)
 router.register(r'sanciones', views.SancionViewSet)
+router.register(r'bitacora', views.BitacoraViewSet)
 
 # 2. Las URLs finales que exponemos al mundo
 urlpatterns = [

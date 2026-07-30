@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   BarChart3, Package, FileText, AlertTriangle,
-  CheckCircle, XCircle, QrCode, Plus, Clock, CalendarClock,
+  CheckCircle, XCircle, QrCode, Plus, Clock, CalendarClock, Search, History
 } from 'lucide-react';
 import { useAutoRefresh } from '@/lib/use-auto-refresh';
 import { SpecialLoanDialog } from '@/components/special-loan-dialog';
@@ -87,6 +87,10 @@ export default function AdminLoansPage() {
   const [applySanction, setApplySanction] = useState(false);
   const [sanctionReason, setSanctionReason] = useState('');
   const [sanctionSeverity, setSanctionSeverity] = useState<'warning' | 'restriction' | 'ban'>('warning');
+
+  // Estados de filtro por estado y búsqueda
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'overdue' | 'returned' | 'rejected'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { addNotification } = useNotifications();
 
@@ -181,13 +185,51 @@ export default function AdminLoansPage() {
     { label: 'Equipos',    href: '/admin/equipment',  icon: <Package className="w-4 h-4" /> },
     { label: 'Préstamos',  href: '/admin/loans',      icon: <FileText className="w-4 h-4" /> },
     { label: 'Sanciones',  href: '/admin/sanctions',  icon: <AlertTriangle className="w-4 h-4" /> },
+    { label: 'Auditoría',  href: '/admin/audit',      icon: <History className="w-4 h-4" /> },
   ];
 
-  const allGroups    = groupLoans(loans);
-  const sortByDate   = (a: LoanGroup, b: LoanGroup) =>
+  const allGroups = groupLoans(loans);
+  const sortByDate = (a: LoanGroup, b: LoanGroup) =>
     new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime();
-  const activeGroups = allGroups.filter(g => g.status === 'pending' || g.status === 'approved').sort(sortByDate);
-  const closedGroups = allGroups.filter(g => g.status === 'returned' || g.status === 'rejected').sort(sortByDate);
+
+  // Contadores por estado
+  const countAll = allGroups.length;
+  const countPending = allGroups.filter(g => g.status === 'pending').length;
+  const countApproved = allGroups.filter(g => {
+    const due = new Date(g.dueDate);
+    due.setHours(23, 59, 59, 999);
+    const isOverdue = g.backendStatus === 'ATRASADO' || (g.status === 'approved' && (due.getTime() - new Date().getTime()) < 0);
+    return g.status === 'approved' && !isOverdue;
+  }).length;
+  const countOverdue = allGroups.filter(g => {
+    const due = new Date(g.dueDate);
+    due.setHours(23, 59, 59, 999);
+    return g.backendStatus === 'ATRASADO' || (g.status === 'approved' && (due.getTime() - new Date().getTime()) < 0);
+  }).length;
+  const countReturned = allGroups.filter(g => g.status === 'returned').length;
+  const countRejected = allGroups.filter(g => g.status === 'rejected').length;
+
+  const filteredGroups = allGroups.filter(g => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = g.studentName.toLowerCase().includes(q);
+      const matchItems = g.items.some(i => i.equipmentName.toLowerCase().includes(q));
+      const matchTicket = g.groupId.includes(q);
+      if (!matchName && !matchItems && !matchTicket) return false;
+    }
+
+    const due = new Date(g.dueDate);
+    due.setHours(23, 59, 59, 999);
+    const isOverdue = g.backendStatus === 'ATRASADO' || (g.status === 'approved' && (due.getTime() - new Date().getTime()) < 0);
+
+    if (statusFilter === 'pending') return g.status === 'pending';
+    if (statusFilter === 'approved') return g.status === 'approved' && !isOverdue;
+    if (statusFilter === 'overdue') return isOverdue;
+    if (statusFilter === 'returned') return g.status === 'returned';
+    if (statusFilter === 'rejected') return g.status === 'rejected';
+
+    return true;
+  }).sort(sortByDate);
 
   const renderGroup = (group: LoanGroup, closed = false) => {
     const working = workingGroupId === group.groupId;
@@ -376,32 +418,98 @@ export default function AdminLoansPage() {
             </div>
           </div>
 
-          {activeGroups.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-foreground mb-4">
-                Solicitudes Activas ({activeGroups.length})
-              </h3>
-              <div className="grid gap-4">
-                {activeGroups.map(g => renderGroup(g))}
-              </div>
+          {/* ── Barra de búsqueda y Pestañas de Filtro por Estado ── */}
+          <div className="mb-6 space-y-4">
+            {/* Buscador */}
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Buscar por estudiante, equipo o N° de ticket..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
             </div>
-          )}
 
-          {closedGroups.length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold text-foreground mb-4">
-                Histórico ({closedGroups.length})
-              </h3>
-              <div className="grid gap-4">
-                {closedGroups.map(g => renderGroup(g, true))}
-              </div>
+            {/* Pestañas de Estado */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none text-xs font-semibold">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  statusFilter === 'all'
+                    ? 'bg-foreground text-background font-bold shadow-sm'
+                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                Todos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-background/20">{countAll}</span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter('pending')}
+                className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  statusFilter === 'pending'
+                    ? 'bg-yellow-500 text-white font-bold shadow-sm'
+                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300 hover:bg-yellow-200'
+                }`}
+              >
+                🟡 Pendientes <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countPending}</span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter('approved')}
+                className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  statusFilter === 'approved'
+                    ? 'bg-green-600 text-white font-bold shadow-sm'
+                    : 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 hover:bg-green-200'
+                }`}
+              >
+                🟢 Activos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countApproved}</span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter('overdue')}
+                className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  statusFilter === 'overdue'
+                    ? 'bg-red-600 text-white font-bold shadow-sm'
+                    : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 hover:bg-red-200'
+                }`}
+              >
+                🔴 Atrasados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countOverdue}</span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter('returned')}
+                className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  statusFilter === 'returned'
+                    ? 'bg-blue-600 text-white font-bold shadow-sm'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 hover:bg-blue-200'
+                }`}
+              >
+                🔵 Devueltos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countReturned}</span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter('rejected')}
+                className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  statusFilter === 'rejected'
+                    ? 'bg-gray-700 text-white font-bold shadow-sm'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200'
+                }`}
+              >
+                ⚪ Rechazados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countRejected}</span>
+              </button>
             </div>
-          )}
+          </div>
 
-          {allGroups.length === 0 && (
+          {filteredGroups.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredGroups.map(g => renderGroup(g, g.status === 'returned' || g.status === 'rejected'))}
+            </div>
+          ) : (
             <Card>
               <CardContent className="pt-8 pb-8 text-center">
-                <p className="text-muted-foreground">No hay solicitudes de préstamo</p>
+                <p className="text-muted-foreground">No hay préstamos que coincidan con el filtro seleccionado</p>
               </CardContent>
             </Card>
           )}

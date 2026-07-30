@@ -24,6 +24,7 @@ export interface Equipment {
   description: string;
   available: number;
   total: number;
+  maintenance?: number;
   imageUrl?: string;
   condition: 'good' | 'fair' | 'poor' | 'maintenance';
 }

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion
+from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion
 
 # --- TRADUCTOR DE ESTUDIANTES ---
 class EstudianteSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class EquipoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Equipo
-        fields = ['id', 'nombre', 'marca_modelo', 'color', 'descripcion', 'imagen', 'imagen_url', 'cantidad_total', 'cantidad_disponible']
+        fields = ['id', 'nombre', 'marca_modelo', 'color', 'descripcion', 'imagen', 'imagen_url', 'cantidad_total', 'cantidad_disponible', 'cantidad_mantenimiento']
 
     def get_imagen_url(self, obj):
         if obj.imagen:
@@ -137,3 +137,17 @@ class SancionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('La fecha de fin no puede ser menor a la fecha de inicio.')
 
         return attrs
+
+
+class BitacoraAccionSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.SerializerMethodField()
+    accion_display = serializers.CharField(source='get_accion_display', read_only=True)
+
+    class Meta:
+        model = BitacoraAccion
+        fields = ['id', 'usuario', 'usuario_nombre', 'accion', 'accion_display', 'descripcion', 'ip_address', 'fecha_hora']
+
+    def get_usuario_nombre(self, obj):
+        if obj.usuario:
+            return f"{obj.usuario.first_name} {obj.usuario.last_name}".strip() or obj.usuario.username
+        return 'Sistema'

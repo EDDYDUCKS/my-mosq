@@ -62,6 +62,7 @@ function formatDateTime(date: Date, includeTime = true): string {
 export default function StudentLoansPage() {
   const [loans, setLoans]     = useState<LoanRequest[]>([]);
   const [returnModal, setReturnModal] = useState<{ id: string; items: string[] } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'returned' | 'rejected'>('all');
 
   const loadLoans = useCallback(async () => {
     try {
@@ -115,13 +116,23 @@ export default function StudentLoansPage() {
     pending: 0, approved: 1, returned: 2, rejected: 3,
   };
 
-  const groupedLoans = groupLoans(loans).sort((a, b) => {
-    // Activos/pendientes primero, luego histórico
-    const statusDiff = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
-    if (statusDiff !== 0) return statusDiff;
-    // Dentro de cada grupo, más reciente primero
-    return new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime();
-  });
+  const allGrouped = groupLoans(loans);
+  const countAll = allGrouped.length;
+  const countPending = allGrouped.filter(g => g.status === 'pending').length;
+  const countApproved = allGrouped.filter(g => g.status === 'approved').length;
+  const countReturned = allGrouped.filter(g => g.status === 'returned').length;
+  const countRejected = allGrouped.filter(g => g.status === 'rejected').length;
+
+  const groupedLoans = allGrouped
+    .filter(g => {
+      if (statusFilter === 'all') return true;
+      return g.status === statusFilter;
+    })
+    .sort((a, b) => {
+      const statusDiff = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+      if (statusDiff !== 0) return statusDiff;
+      return new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime();
+    });
 
   return (
     <ProtectedLayout allowedRoles={['student']}>
@@ -134,6 +145,62 @@ export default function StudentLoansPage() {
             <p className="text-sm text-muted-foreground">
               Gestiona todas tus solicitudes de préstamo
             </p>
+          </div>
+
+          {/* Pestañas de estado */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-4 scrollbar-none text-xs font-semibold">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                statusFilter === 'all'
+                  ? 'bg-foreground text-background font-bold shadow-sm'
+                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Todos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-background/20">{countAll}</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending')}
+              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                statusFilter === 'pending'
+                  ? 'bg-yellow-500 text-white font-bold shadow-sm'
+                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300'
+              }`}
+            >
+              🟡 Pendientes <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countPending}</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('approved')}
+              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                statusFilter === 'approved'
+                  ? 'bg-green-600 text-white font-bold shadow-sm'
+                  : 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300'
+              }`}
+            >
+              🟢 Aprobados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countApproved}</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('returned')}
+              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                statusFilter === 'returned'
+                  ? 'bg-blue-600 text-white font-bold shadow-sm'
+                  : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+              }`}
+            >
+              🔵 Devueltos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countReturned}</span>
+            </button>
+            {countRejected > 0 && (
+              <button
+                onClick={() => setStatusFilter('rejected')}
+                className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  statusFilter === 'rejected'
+                    ? 'bg-red-600 text-white font-bold shadow-sm'
+                    : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'
+                }`}
+              >
+                🔴 Rechazados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countRejected}</span>
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">

@@ -28,7 +28,8 @@ import {
   Edit2,
   Trash2,
   Upload,
-  X
+  X,
+  History
 } from 'lucide-react';
 
 export default function AdminEquipmentPage() {
@@ -124,6 +125,7 @@ export default function AdminEquipmentPage() {
           descripcion,
           cantidad_total: cantidadTotal,
           cantidad_disponible: cantidadDisponible,
+          cantidad_mantenimiento: formData.maintenance || 0,
           imagen: selectedImageFile,
         });
         setEquipment((prev) => prev.map((item) => (item.id === editingId ? updated : item)));
@@ -135,6 +137,7 @@ export default function AdminEquipmentPage() {
           descripcion,
           cantidad_total: cantidadTotal,
           cantidad_disponible: cantidadDisponible,
+          cantidad_mantenimiento: formData.maintenance || 0,
           imagen: selectedImageFile,
         });
         setEquipment((prev) => [...prev, created]);
@@ -172,6 +175,7 @@ export default function AdminEquipmentPage() {
     { label: 'Equipos', href: '/admin/equipment', icon: <Package className="w-4 h-4" /> },
     { label: 'Préstamos', href: '/admin/loans', icon: <FileText className="w-4 h-4" /> },
     { label: 'Sanciones', href: '/admin/sanctions', icon: <AlertTriangle className="w-4 h-4" /> },
+    { label: 'Auditoría', href: '/admin/audit', icon: <History className="w-4 h-4" /> },
   ];
 
   return (
@@ -239,19 +243,26 @@ export default function AdminEquipmentPage() {
                     </div>
 
                     <div className="mt-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1 flex-wrap">
                         <div className="text-xs text-muted-foreground">
-                          Condición: <span className="font-semibold capitalize">{item.condition}</span>
+                          Condición: <span className="font-semibold capitalize">{item.condition === 'maintenance' ? '🛠️ Mantenimiento' : item.condition}</span>
                         </div>
-                        <Badge className={
-                          item.available > item.total * 0.5
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : item.available > 0
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }>
-                          {item.available}/{item.total}
-                        </Badge>
+                        <div className="flex items-center gap-1">
+                          {(item.maintenance || 0) > 0 && (
+                            <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">
+                              🛠️ {item.maintenance}
+                            </Badge>
+                          )}
+                          <Badge className={
+                            item.available > item.total * 0.5
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : item.available > 0
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }>
+                            {item.available}/{item.total}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div className="mt-3 flex gap-2">
@@ -396,8 +407,8 @@ export default function AdminEquipmentPage() {
               </div>
             </div>
 
-            {/* Campos: Disponibles / Total */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Campos: Disponibles / Mantenimiento / Total */}
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="available">Disponibles</Label>
                 <Input
@@ -409,7 +420,17 @@ export default function AdminEquipmentPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="total">Total</Label>
+                <Label htmlFor="maintenance">En Mantenimiento</Label>
+                <Input
+                  id="maintenance"
+                  type="number"
+                  value={formData.maintenance || 0}
+                  onChange={(e) => setFormData({ ...formData, maintenance: parseInt(e.target.value) })}
+                  className="border-input text-orange-600 font-medium"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="total">Total Bodega</Label>
                 <Input
                   id="total"
                   type="number"

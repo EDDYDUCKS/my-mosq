@@ -26,7 +26,8 @@ import {
   FileText,
   AlertTriangle,
   Plus,
-  Trash2
+  Trash2,
+  History
 } from 'lucide-react';
 
 export default function AdminSanctionsPage() {
@@ -137,6 +138,7 @@ export default function AdminSanctionsPage() {
     { label: 'Equipos', href: '/admin/equipment', icon: <Package className="w-4 h-4" /> },
     { label: 'Préstamos', href: '/admin/loans', icon: <FileText className="w-4 h-4" /> },
     { label: 'Sanciones', href: '/admin/sanctions', icon: <AlertTriangle className="w-4 h-4" /> },
+    { label: 'Auditoría', href: '/admin/audit', icon: <History className="w-4 h-4" /> },
   ];
 
   const now = new Date();

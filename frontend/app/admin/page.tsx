@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Download,
   X,
+  History,
 } from 'lucide-react';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { useNotifications } from '@/lib/notifications-context';
@@ -118,6 +119,7 @@ export default function AdminDashboard() {
     { label: 'Equipos', href: '/admin/equipment', icon: <Package className="w-4 h-4" /> },
     { label: 'Préstamos', href: '/admin/loans', icon: <FileText className="w-4 h-4" /> },
     { label: 'Sanciones', href: '/admin/sanctions', icon: <AlertTriangle className="w-4 h-4" /> },
+    { label: 'Auditoría', href: '/admin/audit', icon: <History className="w-4 h-4" /> },
   ];
 
   const dismissMonthlyAlert = () => {

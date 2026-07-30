@@ -22,6 +22,7 @@ interface BackendEquipo {
   imagen_url: string | null;
   cantidad_total: number;
   cantidad_disponible: number;
+  cantidad_mantenimiento?: number;
 }
 
 interface BackendDetallePrestamo {
@@ -265,8 +266,9 @@ function mapEquipment(item: BackendEquipo): Equipment {
     description: item.descripcion || 'Sin descripción',
     available: item.cantidad_disponible,
     total: item.cantidad_total,
+    maintenance: item.cantidad_mantenimiento || 0,
     imageUrl: item.imagen_url || resolveEquipmentImage(item.nombre),
-    condition: 'good',
+    condition: (item.cantidad_mantenimiento || 0) > 0 ? 'maintenance' : (item.cantidad_disponible > 0 ? 'good' : 'poor'),
   };
 }
 
@@ -367,6 +369,7 @@ export async function createEquipment(payload: {
   descripcion?: string;
   cantidad_total: number;
   cantidad_disponible: number;
+  cantidad_mantenimiento?: number;
   imagen?: File | null;
 }): Promise<Equipment> {
   const formData = new FormData();
@@ -376,6 +379,7 @@ export async function createEquipment(payload: {
   if (payload.descripcion) formData.append('descripcion', payload.descripcion);
   formData.append('cantidad_total', String(payload.cantidad_total));
   formData.append('cantidad_disponible', String(payload.cantidad_disponible));
+  formData.append('cantidad_mantenimiento', String(payload.cantidad_mantenimiento || 0));
   if (payload.imagen) formData.append('imagen', payload.imagen);
 
   const data = await apiRequest<BackendEquipo>('/equipos/', {
@@ -395,6 +399,7 @@ export async function updateEquipment(
     descripcion?: string;
     cantidad_total: number;
     cantidad_disponible: number;
+    cantidad_mantenimiento?: number;
     imagen?: File | null;
   },
 ): Promise<Equipment> {
@@ -405,6 +410,7 @@ export async function updateEquipment(
   if (payload.descripcion !== undefined) formData.append('descripcion', payload.descripcion);
   formData.append('cantidad_total', String(payload.cantidad_total));
   formData.append('cantidad_disponible', String(payload.cantidad_disponible));
+  formData.append('cantidad_mantenimiento', String(payload.cantidad_mantenimiento || 0));
   if (payload.imagen) formData.append('imagen', payload.imagen);
 
   const data = await apiRequest<BackendEquipo>(`/equipos/${equipmentId}/`, {
@@ -413,6 +419,21 @@ export async function updateEquipment(
   });
 
   return mapEquipment(data);
+}
+
+export interface AuditLog {
+  id: number;
+  usuario: number | null;
+  usuario_nombre: string;
+  accion: string;
+  accion_display: string;
+  descripcion: string;
+  ip_address: string;
+  fecha_hora: string;
+}
+
+export async function fetchAuditLogs(): Promise<AuditLog[]> {
+  return await apiRequest<AuditLog[]>('/bitacora/');
 }
 
 export async function deleteEquipment(equipmentId: string): Promise<void> {

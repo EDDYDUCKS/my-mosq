@@ -22,8 +22,9 @@ class ExcelBinaryRenderer(BaseRenderer):
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
-from .models import Estudiante, Equipo, Prestamo, Sancion
-from .serializers import EstudianteSerializer, EquipoSerializer, PrestamoSerializer, SancionSerializer
+from .models import Estudiante, Equipo, Prestamo, Sancion, BitacoraAccion
+from .serializers import EstudianteSerializer, EquipoSerializer, PrestamoSerializer, SancionSerializer, BitacoraAccionSerializer
+from .utils import registrar_auditoria, enviar_notificacion_email
 import os
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -140,6 +141,35 @@ class EquipoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
+    def perform_create(self, serializer):
+        equipo = serializer.save()
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion='CREAR_EQUIPO',
+            descripcion=f"Equipo '{equipo.nombre}' creado (Total: {equipo.cantidad_total}, Disponibles: {equipo.cantidad_disponible}, Mantenimiento: {equipo.cantidad_mantenimiento})",
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+
+    def perform_update(self, serializer):
+        equipo = serializer.save()
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion='EDITAR_EQUIPO',
+            descripcion=f"Equipo #{equipo.id} '{equipo.nombre}' actualizado (Total: {equipo.cantidad_total}, Disponibles: {equipo.cantidad_disponible}, Mantenimiento: {equipo.cantidad_mantenimiento})",
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+
+    def perform_destroy(self, instance):
+        nombre = instance.nombre
+        eq_id = instance.id
+        instance.delete()
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion='ELIMINAR_EQUIPO',
+            descripcion=f"Equipo #{eq_id} '{nombre}' eliminado del inventario",
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+
 class PrestamoViewSet(viewsets.ModelViewSet):
     queryset = Prestamo.objects.all()
     serializer_class = PrestamoSerializer
@@ -204,13 +234,51 @@ class PrestamoViewSet(viewsets.ModelViewSet):
 
         if nuevo_estado == 'ACTIVO' and estado_actual != 'ACTIVO':
             save_kwargs['entregado_por'] = self.request.user
+            p_inst = serializer.instance
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion='APROBAR_PRESTAMO',
+                descripcion=f"Préstamo #{p_inst.id} APROBADO/ENTREGADO a {p_inst.estudiante.username}",
+                ip_address=self.request.META.get('REMOTE_ADDR')
+            )
+            enviar_notificacion_email(
+                destinatario_email=p_inst.estudiante.email,
+                asunto=f"Préstamo Aprobado #{p_inst.id} - ULSA",
+                mensaje_texto=f"Hola {p_inst.estudiante.first_name}, tu solicitud de préstamo #{p_inst.id} ha sido APROBADA. Puedes retirar tu equipo en la bodega de deportes."
+            )
 
         if nuevo_estado == 'DEVUELTO' and estado_actual != 'DEVUELTO':
             save_kwargs['recibido_por'] = self.request.user
             save_kwargs['fecha_recepcion'] = timezone.now()
+            p_inst = serializer.instance
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion='RECIBIR_PRESTAMO',
+                descripcion=f"Préstamo #{p_inst.id} RECIBIDO (Devuelto) de {p_inst.estudiante.username}",
+                ip_address=self.request.META.get('REMOTE_ADDR')
+            )
+            enviar_notificacion_email(
+                destinatario_email=p_inst.estudiante.email,
+                asunto=f"Constancia de Devolución Préstamo #{p_inst.id} - ULSA",
+                mensaje_texto=f"Hola {p_inst.estudiante.first_name}, tu préstamo #{p_inst.id} ha sido entregado en bodega y marcado como DEVUELTO exitosamente."
+            )
         elif estado_actual == 'DEVUELTO' and nuevo_estado != 'DEVUELTO':
             save_kwargs['recibido_por'] = None
             save_kwargs['fecha_recepcion'] = None
+
+        if nuevo_estado == 'RECHAZADO' and estado_actual != 'RECHAZADO':
+            p_inst = serializer.instance
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion='RECHAZAR_PRESTAMO',
+                descripcion=f"Préstamo #{p_inst.id} RECHAZADO para {p_inst.estudiante.username}",
+                ip_address=self.request.META.get('REMOTE_ADDR')
+            )
+            enviar_notificacion_email(
+                destinatario_email=p_inst.estudiante.email,
+                asunto=f"Solicitud de Préstamo Rechazada #{p_inst.id} - ULSA",
+                mensaje_texto=f"Hola {p_inst.estudiante.first_name}, tu solicitud de préstamo #{p_inst.id} ha sido rechazada."
+            )
 
         serializer.save(**save_kwargs)
 
@@ -312,6 +380,12 @@ class SancionViewSet(viewsets.ModelViewSet):
 
         sancion.save()
         return Response(self.get_serializer(sancion).data)
+
+
+class BitacoraViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = BitacoraAccion.objects.all()
+    serializer_class = BitacoraAccionSerializer
+    permission_classes = [IsAdminUser]
 
 
 # ==========================================

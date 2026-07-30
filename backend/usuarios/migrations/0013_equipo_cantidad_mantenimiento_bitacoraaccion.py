@@ -1,0 +1,32 @@
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('usuarios', '0012_equipo_color_equipo_marca_modelo'),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name='equipo',
+            name='cantidad_mantenimiento',
+            field=models.PositiveIntegerField(default=0),
+        ),
+        migrations.CreateModel(
+            name='BitacoraAccion',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('accion', models.CharField(choices=[('APROBAR_PRESTAMO', 'Aprobar Préstamo'), ('RECIBIR_PRESTAMO', 'Recibir Préstamo (Devolución)'), ('RECHAZAR_PRESTAMO', 'Rechazar Préstamo'), ('CREAR_EQUIPO', 'Crear Equipo'), ('EDITAR_EQUIPO', 'Editar Equipo'), ('ELIMINAR_EQUIPO', 'Eliminar Equipo'), ('CREAR_SANCION', 'Crear Sanción'), ('RESOLVER_SANCION', 'Resolver Sanción')], max_length=50)),
+                ('descripcion', models.TextField()),
+                ('ip_address', models.CharField(blank=True, max_length=45, null=True)),
+                ('fecha_hora', models.DateTimeField(auto_now_add=True)),
+                ('usuario', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ['-fecha_hora'],
+            },
+        ),
+    ]

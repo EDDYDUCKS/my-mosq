@@ -44,6 +44,7 @@ class Equipo(models.Model):
     imagen = models.ImageField(upload_to='equipos/', blank=True, null=True)
     cantidad_total = models.PositiveIntegerField(default=1)
     cantidad_disponible = models.PositiveIntegerField(default=1)
+    cantidad_mantenimiento = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.nombre
@@ -205,3 +206,30 @@ class Sancion(models.Model):
         estudiante = self.estudiante
         super().delete(*args, **kwargs)
         estudiante.actualizar_estado_sancion()
+
+
+# --- MODELO BITACORA DE AUDITORIA ---
+class BitacoraAccion(models.Model):
+    ACCIONES = [
+        ('APROBAR_PRESTAMO', 'Aprobar Préstamo'),
+        ('RECIBIR_PRESTAMO', 'Recibir Préstamo (Devolución)'),
+        ('RECHAZAR_PRESTAMO', 'Rechazar Préstamo'),
+        ('CREAR_EQUIPO', 'Crear Equipo'),
+        ('EDITAR_EQUIPO', 'Editar Equipo'),
+        ('ELIMINAR_EQUIPO', 'Eliminar Equipo'),
+        ('CREAR_SANCION', 'Crear Sanción'),
+        ('RESOLVER_SANCION', 'Resolver Sanción'),
+    ]
+
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    accion = models.CharField(max_length=50, choices=ACCIONES)
+    descripcion = models.TextField()
+    ip_address = models.CharField(max_length=45, blank=True, null=True)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_hora']
+
+    def __str__(self):
+        user_str = self.usuario.username if self.usuario else 'Sistema'
+        return f"[{self.fecha_hora.strftime('%d/%m/%Y %H:%M')}] {user_str} - {self.get_accion_display()}"
