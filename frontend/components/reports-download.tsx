@@ -3,33 +3,54 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { generateCSVReport, downloadReport } from '@/lib/report-service';
 import { downloadBlob, downloadExcelReportFromApi, fetchAdminLoans } from '@/lib/api-client';
 import { useNotifications } from '@/lib/notifications-context';
 
+const MESES_ES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+function getMesStr(year: number, month: number): string {
+  // month es 1-indexed
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
 export function ReportsDownload() {
+  const now = new Date();
+  const [year, setYear]   = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1); // 1-indexed
   const [isLoading, setIsLoading] = useState(false);
   const { addNotification } = useNotifications();
+
+  const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1);
+  const mesStr = getMesStr(year, month);
+  const mesLabel = `${MESES_ES[month - 1]} ${year}`;
+
+  const goToPrevMonth = () => {
+    if (month === 1) { setYear(y => y - 1); setMonth(12); }
+    else             { setMonth(m => m - 1); }
+  };
+
+  const goToNextMonth = () => {
+    if (isCurrentMonth) return; // no ir a futuro
+    if (month === 12) { setYear(y => y + 1); setMonth(1); }
+    else              { setMonth(m => m + 1); }
+  };
 
   const handleDownloadExcel = () => {
     setIsLoading(true);
     (async () => {
       try {
-        const { blob, filename } = await downloadExcelReportFromApi();
+        const { blob, filename } = await downloadExcelReportFromApi(mesStr);
         downloadBlob(blob, filename);
-
-        addNotification(
-          'Reporte Descargado',
-          'El reporte en Excel ha sido descargado exitosamente',
-          'success'
-        );
-      } catch (error) {
-        addNotification(
-          'Error',
-          'No se pudo descargar el reporte',
-          'error'
-        );
+        // Marcar el mes actual como "reporte descargado"
+        localStorage.setItem('mosq_last_report_month', getMesStr(now.getFullYear(), now.getMonth() + 1));
+        addNotification('Reporte Descargado', `Reporte Excel de ${mesLabel} descargado.`, 'success');
+      } catch {
+        addNotification('Error', 'No se pudo descargar el reporte Excel.', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -41,39 +62,34 @@ export function ReportsDownload() {
     (async () => {
       try {
         const loans = await fetchAdminLoans();
-        const reportData = loans.map((request) => ({
-          id: request.id,
-          fecha: new Date(request.requestDate).toLocaleDateString('es-NI'),
-          horaEntrega: new Date(request.requestDate).toLocaleTimeString('es-NI'),
-          horaDevolucion: request.receivedAt
-            ? new Date(request.receivedAt).toLocaleTimeString('es-NI')
-            : 'Pendiente',
-          numeroCarnet: request.studentCardId || 'N/D',
+        // Filtrar por mes seleccionado
+        const filtrados = loans.filter(loan => {
+          const d = new Date(loan.requestDate);
+          return d.getFullYear() === year && (d.getMonth() + 1) === month && loan.status === 'returned';
+        });
+        const reportData = filtrados.map((request) => ({
+          ticket:           request.loanGroupId || request.id,
+          fechaSolicitud:   new Date(request.requestDate).toLocaleDateString('es-NI'),
+          horaSolicitud:    new Date(request.requestDate).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' }),
+          fechaDevolucion:  request.receivedAt ? new Date(request.receivedAt).toLocaleDateString('es-NI') : 'Pendiente',
+          horaDevolucion:   request.receivedAt ? new Date(request.receivedAt).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' }) : 'Pendiente',
+          numeroCarnet:     request.studentCardId || 'N/D',
           nombreEstudiante: request.studentName,
-          carrera: request.studentCareer || 'N/D',
-          año: request.studentYear || 'N/D',
+          carrera:          request.studentCareer || 'N/D',
+          año:              request.studentYear || 'N/D',
           descripcionEquipo: request.equipmentName,
-          cantidad: request.quantity,
-          personaEntrega: request.deliveredByName || 'N/D',
-          personaRecibe: request.receivedByName || 'Pendiente',
-          estado: request.backendStatus || request.status,
+          cantidad:         request.quantity,
+          personaEntrega:   request.deliveredByName || 'N/D',
+          personaRecibe:    request.receivedByName || 'N/D',
+          estado:           request.backendStatus || request.status,
         }));
 
         const csvContent = generateCSVReport(reportData);
-        const timestamp = new Date().toISOString().slice(0, 10);
-        downloadReport(csvContent, `reporte-prestamos-${timestamp}.csv`);
-
-        addNotification(
-          'Reporte Descargado',
-          'El reporte en CSV ha sido descargado exitosamente',
-          'success'
-        );
-      } catch (error) {
-        addNotification(
-          'Error',
-          'No se pudo descargar el reporte',
-          'error'
-        );
+        downloadReport(csvContent, `Reporte_Prestamos_${mesLabel.replace(' ', '_')}.csv`);
+        localStorage.setItem('mosq_last_report_month', getMesStr(now.getFullYear(), now.getMonth() + 1));
+        addNotification('Reporte Descargado', `Reporte CSV de ${mesLabel} descargado.`, 'success');
+      } catch {
+        addNotification('Error', 'No se pudo descargar el reporte CSV.', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -85,33 +101,71 @@ export function ReportsDownload() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
           <FileText className="w-5 h-5" />
-          Descargar Reportes
+          Reportes de Préstamos
         </CardTitle>
         <CardDescription>
-          Descarga reportes de préstamos en diferentes formatos
+          Descarga los reportes mensuales de préstamos devueltos
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="space-y-5">
+
+        {/* Selector de mes */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Período</p>
+          <div className="flex items-center justify-between gap-3 bg-muted/50 rounded-lg px-4 py-2.5 border border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToPrevMonth}
+              disabled={isLoading}
+              className="h-8 w-8 p-0 hover:bg-green-100 dark:hover:bg-green-900"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            <div className="text-center">
+              <p className="font-semibold text-foreground text-sm">{mesLabel}</p>
+              {isCurrentMonth && (
+                <p className="text-xs text-green-600 dark:text-green-400">Mes actual</p>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToNextMonth}
+              disabled={isLoading || isCurrentMonth}
+              className="h-8 w-8 p-0 hover:bg-green-100 dark:hover:bg-green-900 disabled:opacity-30"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Botones de descarga */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Button
             onClick={handleDownloadExcel}
             disabled={isLoading}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold transition-all"
           >
             <Download className="w-4 h-4" />
-            Descargar Excel
+            {isLoading ? 'Generando...' : 'Descargar Excel'}
           </Button>
           <Button
             onClick={handleDownloadCSV}
             disabled={isLoading}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold transition-all"
+            variant="outline"
+            className="flex items-center gap-2 border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 font-semibold transition-all"
           >
             <Download className="w-4 h-4" />
-            Descargar CSV
+            {isLoading ? 'Generando...' : 'Descargar CSV'}
           </Button>
         </div>
+
         <p className="text-xs text-muted-foreground">
-          Los reportes incluyen: fecha, hora de entrega/devolución, número de carnet, nombre del estudiante, carrera, año, descripción del equipo, cantidad, persona que entrega y recibe.
+          Incluye únicamente préstamos con estado <strong>Devuelto</strong> en el mes seleccionado.
+          El Excel contiene formato profesional con colores y totales.
         </p>
       </CardContent>
     </Card>

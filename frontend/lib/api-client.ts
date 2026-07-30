@@ -546,15 +546,20 @@ export async function deleteSanction(sanctionId: string): Promise<void> {
   });
 }
 
-export async function downloadExcelReportFromApi(): Promise<{ blob: Blob; filename: string }> {
-  const blob = await apiRequest<Blob>('/reportes/excel/', {
-    responseType: 'blob',
+export async function downloadExcelReportFromApi(mes?: string): Promise<{ blob: Blob; filename: string }> {
+  const url = mes ? `/reportes/excel/?mes=${mes}` : '/reportes/excel/';
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}${url}`, {
+    headers: {
+      Authorization: token ? `Token ${token}` : '',
+      Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    },
   });
-
-  return {
-    blob,
-    filename: `reporte-prestamos-${new Date().toISOString().slice(0, 10)}.xlsx`,
-  };
+  if (!response.ok) throw new Error('Error al descargar el reporte');
+  const blob = await response.blob();
+  const headerFilename = response.headers.get('X-Filename');
+  const filename = headerFilename || `Reporte_Prestamos_${mes || new Date().toISOString().slice(0, 7)}.xlsx`;
+  return { blob, filename };
 }
 
 export function downloadBlob(blob: Blob, filename: string) {

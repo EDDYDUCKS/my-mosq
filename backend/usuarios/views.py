@@ -306,51 +306,234 @@ class SancionViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def exportar_reporte_excel(request):
+    import calendar
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    # ── Colores institucionales ULSA ──────────────────────────────────────
+    COLOR_ULSA        = '27822e'   # verde ULSA (fondo titulo y encabezados)
+    COLOR_HEADER_TEXT = 'FFFFFF'   # blanco para texto de encabezados
+    COLOR_FILA_PAR    = 'F0F7F0'   # verde muy claro para filas pares
+    COLOR_FILA_IMPAR  = 'FFFFFF'   # blanco para filas impares
+    # Colores por estado
+    COLOR_DEVUELTO    = 'C8E6C9'
+    COLOR_PENDIENTE   = 'FFF9C4'
+    COLOR_ATRASADO    = 'FFCDD2'
+    COLOR_RECHAZADO   = 'EEEEEE'
+
+    # ── Filtro por mes (parámetro ?mes=2026-07) ───────────────────────────
+    mes_param = request.GET.get('mes', None)
+    hoy = timezone.localtime(timezone.now())
+    if mes_param:
+        try:
+            anio, mes_num = map(int, mes_param.split('-'))
+        except (ValueError, AttributeError):
+            anio, mes_num = hoy.year, hoy.month
+    else:
+        anio, mes_num = hoy.year, hoy.month
+
+    nombre_mes = calendar.month_name[mes_num]
+    MESES_ES = {
+        'January':'Enero','February':'Febrero','March':'Marzo','April':'Abril',
+        'May':'Mayo','June':'Junio','July':'Julio','August':'Agosto',
+        'September':'Septiembre','October':'Octubre','November':'Noviembre','December':'Diciembre'
+    }
+    nombre_mes_es = MESES_ES.get(nombre_mes, nombre_mes)
+
+    # ── Carrera: codigo → nombre completo ────────────────────────────────
+    CARRERAS_MAP = {
+        'LAF': 'Lic. Administrativa - Finanzas',
+        'LCM': 'Lic. Comercial - Mercadeo',
+        'IGI': 'Ing. Gestión Industrial',
+        'ICE': 'Ing. Cibernética Electrónica',
+        'IME': 'Ing. Mecánica y Energías Renovables',
+        'IMS': 'Ing. Mecatrónica y Sistemas',
+        'IEM': 'Ing. Electromédica',
+    }
+
+    # ── Solo préstamos DEVUELTOS en el mes seleccionado ──────────────────
+    primer_dia = timezone.datetime(anio, mes_num, 1, tzinfo=timezone.get_current_timezone())
+    ultimo_dia_num = calendar.monthrange(anio, mes_num)[1]
+    ultimo_dia = timezone.datetime(anio, mes_num, ultimo_dia_num, 23, 59, 59, tzinfo=timezone.get_current_timezone())
+
+    prestamos = (
+        Prestamo.objects
+        .filter(estado='DEVUELTO', fecha_recepcion__range=(primer_dia, ultimo_dia))
+        .select_related('estudiante', 'entregado_por', 'recibido_por')
+        .prefetch_related('detalles__equipo')
+        .order_by('fecha_recepcion')
+    )
+
+    # ── Crear workbook ────────────────────────────────────────────────────
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Reporte de Préstamos"
+    ws.title = f"Prestamos {nombre_mes_es} {anio}"
 
+    # Estilos reutilizables
+    fill_ulsa    = PatternFill('solid', fgColor=COLOR_ULSA)
+    fill_header  = PatternFill('solid', fgColor='1A6B20')   # verde más oscuro para fila de encabezados
+    font_white14 = Font(name='Calibri', bold=True, size=14, color=COLOR_HEADER_TEXT)
+    font_white11 = Font(name='Calibri', bold=True, size=11, color=COLOR_HEADER_TEXT)
+    font_bold    = Font(name='Calibri', bold=True, size=10)
+    font_normal  = Font(name='Calibri', size=10)
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_left   = Alignment(horizontal='left',   vertical='center', wrap_text=True)
+
+    thin = Side(border_style='thin', color='AAAAAA')
+    border_all = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    TOTAL_COLS = 16  # A..P
+
+    # ── Fila 1: Título institucional ──────────────────────────────────────
+    ws.merge_cells(f'A1:{get_column_letter(TOTAL_COLS)}1')
+    titulo = ws['A1']
+    titulo.value = 'SISTEMA DE GESTIÓN DE PRÉSTAMOS DEPORTIVOS — ULSA'
+    titulo.font    = font_white14
+    titulo.fill    = fill_ulsa
+    titulo.alignment = align_center
+    ws.row_dimensions[1].height = 30
+
+    # ── Fila 2: Subtítulo con mes/año ─────────────────────────────────────
+    ws.merge_cells(f'A2:{get_column_letter(TOTAL_COLS)}2')
+    subtitulo = ws['A2']
+    subtitulo.value = f'Reporte de Préstamos Devueltos — {nombre_mes_es} {anio}'
+    subtitulo.font    = Font(name='Calibri', bold=True, size=11, color=COLOR_ULSA)
+    subtitulo.alignment = align_center
+    ws.row_dimensions[2].height = 20
+
+    # ── Fila 3: En blanco (separación) ───────────────────────────────────
+    ws.row_dimensions[3].height = 8
+
+    # ── Fila 4: Encabezados de columnas ──────────────────────────────────
     encabezados = [
-        'Fecha de Entrega', 'Hora de Entrega', 'Fecha de Devolución', 'Hora de Devolución',
-        'N° Carnet', 'Nombre del Estudiante / Solicitante Externo', 'Carrera', 'Año', 
-        'Descripción del Equipo', 'Cantidad', 'Entregado Por (Admin)', 'Recibido Por (Admin)', 'Observaciones'
+        'N°', '# Ticket',
+        'Fecha Solicitud', 'Hora Solicitud',
+        'Fecha Límite Dev.', 'Fecha Real Dev.', 'Hora Devolución',
+        'N° Carnet', 'Nombre Solicitante', 'Carrera', 'Año',
+        'Equipos Prestados',
+        'Entregado por', 'Recibido por',
+        'Estado', 'Observaciones'
     ]
-    ws.append(encabezados)
+    ws.append([''] * TOTAL_COLS)  # placeholder fila 3
+    # sobrescribir desde fila 4
+    for col_idx, enc in enumerate(encabezados, start=1):
+        cell = ws.cell(row=4, column=col_idx, value=enc)
+        cell.fill      = fill_header
+        cell.font      = font_white11
+        cell.alignment = align_center
+        cell.border    = border_all
+    ws.row_dimensions[4].height = 28
 
-    # Traemos los tickets con todos sus detalles de un solo golpe para no saturar la base de datos
-    prestamos = Prestamo.objects.all().select_related('estudiante', 'entregado_por', 'recibido_por').prefetch_related('detalles__equipo')
+    # ── Filas de datos ────────────────────────────────────────────────────
+    fila_inicio = 5
+    total_tickets  = 0
+    total_equipos  = 0
 
-    for p in prestamos:
-        fecha_p = p.fecha_prestamo.strftime('%Y-%m-%d') if p.fecha_prestamo else 'N/A'
-        hora_p = p.fecha_prestamo.strftime('%H:%M:%S') if p.fecha_prestamo else 'N/A'
-        fecha_d = p.fecha_recepcion.strftime('%Y-%m-%d') if p.fecha_recepcion else 'Pendiente'
-        hora_d = p.fecha_recepcion.strftime('%H:%M:%S') if p.fecha_recepcion else 'Pendiente'
-        entregado_por = p.entregado_por.username if p.entregado_por else 'N/A'
-        recibido_por = p.recibido_por.username if p.recibido_por else 'Pendiente'
-        nombre_persona = p.solicitante_externo if p.solicitante_externo else f"{p.estudiante.first_name} {p.estudiante.last_name}"
+    for idx, p in enumerate(prestamos, start=1):
+        es_par = (idx % 2 == 0)
+        fill_fila = PatternFill('solid', fgColor=COLOR_FILA_PAR if es_par else COLOR_FILA_IMPAR)
 
-        # MAGIA: Recorremos cada línea del carrito para este ticket
-        for detalle in p.detalles.all():
-            fila = [
-                fecha_p,
-                hora_p,
-                fecha_d,
-                hora_d,
-                p.estudiante.carnet or 'N/A',
-                nombre_persona,
-                p.estudiante.carrera or 'N/A',
-                p.estudiante.ano_cursado or 'N/A',
-                f"{detalle.equipo.nombre}{f' ({detalle.equipo.marca_modelo})' if detalle.equipo.marca_modelo else ''}{f' [{detalle.equipo.color}]' if detalle.equipo.color else ''}", # Descripción del equipo
-                detalle.cantidad,      # <--- ¡LA CANTIDAD REAL!
-                entregado_por,
-                recibido_por,
-                p.observaciones or ''
-            ]
-            ws.append(fila)
+        # Conversión de fechas a hora local Nicaragua (UTC-6)
+        tz_local = timezone.get_current_timezone()
+        fecha_sol_local = timezone.localtime(p.fecha_prestamo, tz_local) if p.fecha_prestamo else None
+        fecha_dev_local = timezone.localtime(p.fecha_recepcion, tz_local) if p.fecha_recepcion else None
 
+        # Cargar fecha_devolucion (limite)
+        fecha_limite = None
+        if p.fecha_devolucion:
+            try:
+                fd = timezone.localtime(p.fecha_devolucion, tz_local)
+                fecha_limite = fd.strftime('%d/%m/%Y')
+            except Exception:
+                fecha_limite = str(p.fecha_devolucion)[:10]
+
+        nombre_persona = p.solicitante_externo if p.solicitante_externo else \
+            f"{p.estudiante.first_name} {p.estudiante.last_name}".strip() or p.estudiante.username
+        carrera_nombre = CARRERAS_MAP.get(p.estudiante.carrera or '', p.estudiante.carrera or 'N/A')
+        entregado_por  = p.entregado_por.username if p.entregado_por else 'N/A'
+        recibido_por   = p.recibido_por.username if p.recibido_por else 'N/A'
+
+        # Equipos como lista en una celda
+        equipos_lista = ' ; '.join(
+            f"{d.equipo.nombre}"
+            f"{f' ({d.equipo.marca_modelo})' if d.equipo.marca_modelo else ''}"
+            f"{f' [{d.equipo.color}]' if d.equipo.color else ''}"
+            f" ×{d.cantidad}"
+            for d in p.detalles.all()
+        )
+        cant_equipos = sum(d.cantidad for d in p.detalles.all())
+        total_equipos += cant_equipos
+
+        # Color del estado
+        color_estado = {
+            'DEVUELTO':  COLOR_DEVUELTO,
+            'PENDIENTE': COLOR_PENDIENTE,
+            'ACTIVO':    COLOR_PENDIENTE,
+            'ATRASADO':  COLOR_ATRASADO,
+            'RECHAZADO': COLOR_RECHAZADO,
+        }.get(p.estado, 'FFFFFF')
+
+        fila_datos = [
+            idx,                                                   # A - N°
+            p.id,                                                  # B - Ticket
+            fecha_sol_local.strftime('%d/%m/%Y') if fecha_sol_local else 'N/A',  # C - Fecha solicitud
+            fecha_sol_local.strftime('%H:%M') if fecha_sol_local else 'N/A',     # D - Hora solicitud
+            fecha_limite or 'N/A',                                 # E - Fecha limite
+            fecha_dev_local.strftime('%d/%m/%Y') if fecha_dev_local else 'N/A',  # F - Fecha real dev
+            fecha_dev_local.strftime('%H:%M') if fecha_dev_local else 'N/A',     # G - Hora dev
+            p.estudiante.carnet or 'N/A',                          # H - Carnet
+            nombre_persona,                                        # I - Nombre
+            carrera_nombre,                                        # J - Carrera
+            p.estudiante.ano_cursado or 'N/A',                     # K - Año
+            equipos_lista,                                         # L - Equipos
+            entregado_por,                                         # M - Entregado por
+            recibido_por,                                          # N - Recibido por
+            p.estado,                                              # O - Estado
+            p.observaciones or '',                                 # P - Observaciones
+        ]
+
+        row_num = fila_inicio + idx - 1
+        ws.append(fila_datos)
+        ws.row_dimensions[row_num].height = 22
+
+        for col_idx, val in enumerate(fila_datos, start=1):
+            cell = ws.cell(row=row_num, column=col_idx)
+            cell.border    = border_all
+            cell.font      = font_normal
+            cell.alignment = align_center if col_idx in (1, 2, 3, 4, 5, 6, 7, 10, 11, 14, 15) else align_left
+
+            if col_idx == 15:  # columna Estado con color
+                cell.fill = PatternFill('solid', fgColor=color_estado)
+                cell.font = Font(name='Calibri', bold=True, size=10)
+            else:
+                cell.fill = fill_fila
+
+        total_tickets += 1
+
+    # ── Fila de totales ───────────────────────────────────────────────────
+    row_totales = fila_inicio + total_tickets
+    ws.merge_cells(f'A{row_totales}:K{row_totales}')
+    cell_tot = ws[f'A{row_totales}']
+    cell_tot.value     = f'TOTAL: {total_tickets} préstamos devueltos  |  {total_equipos} equipos prestados en total'
+    cell_tot.font      = Font(name='Calibri', bold=True, size=10, color=COLOR_ULSA)
+    cell_tot.fill      = PatternFill('solid', fgColor='E8F5E9')
+    cell_tot.alignment = align_center
+    cell_tot.border    = border_all
+    ws.row_dimensions[row_totales].height = 22
+
+    # ── Anchos de columna ─────────────────────────────────────────────────
+    anchos = [5, 8, 13, 10, 13, 13, 10, 12, 30, 28, 6, 45, 20, 20, 12, 30]
+    for i, ancho in enumerate(anchos, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = ancho
+
+    # ── Freeze panes (congelar encabezados) ───────────────────────────────
+    ws.freeze_panes = 'A5'
+
+    # ── Respuesta HTTP ────────────────────────────────────────────────────
+    nombre_archivo = f'Reporte_Prestamos_{nombre_mes_es}_{anio}.xlsx'
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="Reporte_Mensual_SGPED.xlsx"'
-    
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+    response['X-Filename'] = nombre_archivo
     wb.save(response)
     return response
 
