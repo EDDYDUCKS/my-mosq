@@ -552,7 +552,7 @@ export async function downloadExcelReportFromApi(mes?: string): Promise<{ blob: 
   const response = await fetch(`${API_BASE_URL}${url}`, {
     headers: {
       Authorization: token ? `Token ${token}` : '',
-      Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, */*',
     },
   });
   if (!response.ok) {

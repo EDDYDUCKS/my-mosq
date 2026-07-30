@@ -5,13 +5,23 @@ from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework import parsers
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, renderer_classes
+from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.utils import timezone
+
+class ExcelBinaryRenderer(BaseRenderer):
+    media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    format = 'xlsx'
+    charset = None
+    render_style = 'binary'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
 from .models import Estudiante, Equipo, Prestamo, Sancion
 from .serializers import EstudianteSerializer, EquipoSerializer, PrestamoSerializer, SancionSerializer
 import os
@@ -310,6 +320,7 @@ class SancionViewSet(viewsets.ModelViewSet):
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
+@renderer_classes([ExcelBinaryRenderer, JSONRenderer])
 def exportar_reporte_excel(request):
     import calendar
     import logging
