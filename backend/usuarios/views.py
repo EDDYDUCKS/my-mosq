@@ -336,11 +336,12 @@ def exportar_reporte_excel(request):
         COLOR_HEADER_TEXT = 'FFFFFF'   # blanco para texto de encabezados
         COLOR_FILA_PAR    = 'F0F7F0'   # verde muy claro para filas pares
         COLOR_FILA_IMPAR  = 'FFFFFF'   # blanco para filas impares
-        # Colores por estado
-        COLOR_DEVUELTO    = 'C8E6C9'
-        COLOR_PENDIENTE   = 'FFF9C4'
-        COLOR_ATRASADO    = 'FFCDD2'
-        COLOR_RECHAZADO   = 'EEEEEE'
+        # Colores por estado de préstamo
+        COLOR_DEVUELTO    = 'C8E6C9'   # verde claro
+        COLOR_PENDIENTE   = 'FFF9C4'   # amarillo claro
+        COLOR_ACTIVO      = 'FFF9C4'   # amarillo claro
+        COLOR_ATRASADO    = 'FFCDD2'   # rojo claro
+        COLOR_RECHAZADO   = 'EEEEEE'   # gris claro
 
         # ── Filtro por mes (parámetro ?mes=2026-07) ───────────────────────────
         mes_param = request.GET.get('mes', None)
@@ -372,7 +373,7 @@ def exportar_reporte_excel(request):
             'IEM': 'Ing. Electromédica',
         }
 
-        # ── Solo préstamos DEVUELTOS en el mes seleccionado ──────────────────
+        # ── Todos los préstamos del mes seleccionado ─────────────────────────
         tz_local = timezone.get_current_timezone()
         primer_dia = timezone.make_aware(dt(anio, mes_num, 1, 0, 0, 0), tz_local)
         ultimo_dia_num = calendar.monthrange(anio, mes_num)[1]
@@ -380,20 +381,25 @@ def exportar_reporte_excel(request):
 
         prestamos = (
             Prestamo.objects
-            .filter(estado='DEVUELTO', fecha_recepcion__range=(primer_dia, ultimo_dia))
+            .filter(fecha_prestamo__range=(primer_dia, ultimo_dia))
             .select_related('estudiante', 'entregado_por', 'recibido_por')
             .prefetch_related('detalles__equipo')
-            .order_by('fecha_recepcion')
+            .order_by('-fecha_prestamo')
         )
+
+        # Conteo de estados para resumen KPI
+        cant_devueltos  = prestamos.filter(estado='DEVUELTO').count()
+        cant_activos    = prestamos.filter(estado='ACTIVO').count()
+        cant_atrasados  = prestamos.filter(estado='ATRASADO').count()
+        cant_pendientes = prestamos.filter(estado='PENDIENTE').count()
+        cant_rechazados = prestamos.filter(estado='RECHAZADO').count()
 
         # ── Crear workbook ────────────────────────────────────────────────────
         wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = f"Prestamos {nombre_mes_es} {anio}"
-
+        
         # Estilos reutilizables
         fill_ulsa    = PatternFill(fill_type='solid', start_color=COLOR_ULSA, end_color=COLOR_ULSA)
-        fill_header  = PatternFill(fill_type='solid', start_color='1A6B20', end_color='1A6B20')   # verde más oscuro
+        fill_header  = PatternFill(fill_type='solid', start_color='1A6B20', end_color='1A6B20')
         font_white14 = Font(name='Calibri', bold=True, size=14, color=COLOR_HEADER_TEXT)
         font_white11 = Font(name='Calibri', bold=True, size=11, color=COLOR_HEADER_TEXT)
         font_bold    = Font(name='Calibri', bold=True, size=10)
@@ -403,47 +409,6 @@ def exportar_reporte_excel(request):
 
         thin = Side(border_style='thin', color='AAAAAA')
         border_all = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-        TOTAL_COLS = 16  # A..P
-
-        # ── Fila 1: Título institucional ──────────────────────────────────────
-        ws.merge_cells(f'A1:{get_column_letter(TOTAL_COLS)}1')
-        titulo = ws['A1']
-        titulo.value = 'SISTEMA DE GESTIÓN DE PRÉSTAMOS DEPORTIVOS — ULSA'
-        titulo.font    = font_white14
-        titulo.fill    = fill_ulsa
-        titulo.alignment = align_center
-        ws.row_dimensions[1].height = 30
-
-        # ── Fila 2: Subtítulo con mes/año ─────────────────────────────────────
-        ws.merge_cells(f'A2:{get_column_letter(TOTAL_COLS)}2')
-        subtitulo = ws['A2']
-        subtitulo.value = f'Reporte de Préstamos Devueltos — {nombre_mes_es} {anio}'
-        subtitulo.font    = Font(name='Calibri', bold=True, size=11, color=COLOR_ULSA)
-        subtitulo.alignment = align_center
-        ws.row_dimensions[2].height = 20
-
-        # ── Fila 3: En blanco (separación) ───────────────────────────────────
-        ws.row_dimensions[3].height = 8
-
-        # ── Fila 4: Encabezados de columnas ──────────────────────────────────
-        encabezados = [
-            'N°', '# Ticket',
-            'Fecha Solicitud', 'Hora Solicitud',
-            'Fecha Límite Dev.', 'Fecha Real Dev.', 'Hora Devolución',
-            'N° Carnet', 'Nombre Solicitante', 'Carrera', 'Año',
-            'Equipos Prestados',
-            'Entregado por', 'Recibido por',
-            'Estado', 'Observaciones'
-        ]
-        ws.append([''] * TOTAL_COLS)  # placeholder fila 3
-        for col_idx, enc in enumerate(encabezados, start=1):
-            cell = ws.cell(row=4, column=col_idx, value=enc)
-            cell.fill      = fill_header
-            cell.font      = font_white11
-            cell.alignment = align_center
-            cell.border    = border_all
-        ws.row_dimensions[4].height = 28
 
         # Helper seguro para formatear fechas sin error de zona horaria
         def format_dt(dt_val, fmt='%d/%m/%Y'):
@@ -457,8 +422,63 @@ def exportar_reporte_excel(request):
             except Exception:
                 return str(dt_val)[:10]
 
-        # ── Filas de datos ────────────────────────────────────────────────────
-        fila_inicio = 5
+        # ======================================================================
+        # HOJA 1: PRÉSTAMOS DEL MES
+        # ======================================================================
+        ws1 = wb.active
+        ws1.title = f"Préstamos {nombre_mes_es} {anio}"
+
+        TOTAL_COLS1 = 16  # A..P
+
+        # Fila 1: Título institucional
+        ws1.merge_cells(f'A1:{get_column_letter(TOTAL_COLS1)}1')
+        titulo1 = ws1['A1']
+        titulo1.value = 'SISTEMA DE GESTIÓN DE PRÉSTAMOS DEPORTIVOS — ULSA'
+        titulo1.font    = font_white14
+        titulo1.fill    = fill_ulsa
+        titulo1.alignment = align_center
+        ws1.row_dimensions[1].height = 30
+
+        # Fila 2: Subtítulo con resumen KPI
+        ws1.merge_cells(f'A2:{get_column_letter(TOTAL_COLS1)}2')
+        subtitulo1 = ws1['A2']
+        subtitulo1.value = (
+            f'Reporte de Préstamos — {nombre_mes_es} {anio}  |  '
+            f'Total: {prestamos.count()}  |  '
+            f'Devueltos: {cant_devueltos}  |  '
+            f'Activos: {cant_activos}  |  '
+            f'Atrasados: {cant_atrasados}  |  '
+            f'Pendientes: {cant_pendientes}  |  '
+            f'Rechazados: {cant_rechazados}'
+        )
+        subtitulo1.font    = Font(name='Calibri', bold=True, size=10, color=COLOR_ULSA)
+        subtitulo1.alignment = align_center
+        ws1.row_dimensions[2].height = 22
+
+        # Fila 3: Separación
+        ws1.row_dimensions[3].height = 8
+
+        # Fila 4: Encabezados de columnas
+        encabezados1 = [
+            'N°', '# Ticket',
+            'Fecha Solicitud', 'Hora Solicitud',
+            'Fecha Límite Dev.', 'Fecha Real Dev.', 'Hora Devolución',
+            'N° Carnet', 'Nombre Solicitante', 'Carrera', 'Año',
+            'Equipos Prestados',
+            'Entregado por', 'Recibido por',
+            'Estado', 'Observaciones'
+        ]
+        ws1.append([''] * TOTAL_COLS1)  # placeholder fila 3
+        for col_idx, enc in enumerate(encabezados1, start=1):
+            cell = ws1.cell(row=4, column=col_idx, value=enc)
+            cell.fill      = fill_header
+            cell.font      = font_white11
+            cell.alignment = align_center
+            cell.border    = border_all
+        ws1.row_dimensions[4].height = 28
+
+        # Filas de datos de préstamos
+        fila_inicio1 = 5
         total_tickets  = 0
         total_equipos  = 0
 
@@ -470,8 +490,16 @@ def exportar_reporte_excel(request):
             fecha_sol_fecha = format_dt(p.fecha_prestamo, '%d/%m/%Y')
             fecha_sol_hora  = format_dt(p.fecha_prestamo, '%H:%M')
             fecha_limite    = format_dt(p.fecha_devolucion, '%d/%m/%Y')
-            fecha_dev_fecha = format_dt(p.fecha_recepcion, '%d/%m/%Y')
-            fecha_dev_hora  = format_dt(p.fecha_recepcion, '%H:%M')
+            
+            if p.estado == 'DEVUELTO':
+                fecha_dev_fecha = format_dt(p.fecha_recepcion, '%d/%m/%Y')
+                fecha_dev_hora  = format_dt(p.fecha_recepcion, '%H:%M')
+            elif p.estado in ('ACTIVO', 'ATRASADO'):
+                fecha_dev_fecha = 'En Uso'
+                fecha_dev_hora  = '-'
+            else:
+                fecha_dev_fecha = 'Pendiente'
+                fecha_dev_hora  = '-'
 
             nombre_persona = p.solicitante_externo if p.solicitante_externo else \
                 f"{p.estudiante.first_name} {p.estudiante.last_name}".strip() or p.estudiante.username
@@ -479,7 +507,6 @@ def exportar_reporte_excel(request):
             entregado_por  = p.entregado_por.username if p.entregado_por else 'N/A'
             recibido_por   = p.recibido_por.username if p.recibido_por else 'N/A'
 
-            # Equipos como lista en una celda
             equipos_lista = ' ; '.join(
                 f"{d.equipo.nombre}"
                 f"{f' ({d.equipo.marca_modelo})' if d.equipo.marca_modelo else ''}"
@@ -490,40 +517,39 @@ def exportar_reporte_excel(request):
             cant_equipos = sum(d.cantidad for d in p.detalles.all())
             total_equipos += cant_equipos
 
-            # Color del estado
             color_estado = {
                 'DEVUELTO':  COLOR_DEVUELTO,
                 'PENDIENTE': COLOR_PENDIENTE,
-                'ACTIVO':    COLOR_PENDIENTE,
+                'ACTIVO':    COLOR_ACTIVO,
                 'ATRASADO':  COLOR_ATRASADO,
                 'RECHAZADO': COLOR_RECHAZADO,
             }.get(p.estado, 'FFFFFF')
 
             fila_datos = [
-                idx,                                                   # A - N°
-                p.id,                                                  # B - Ticket
-                fecha_sol_fecha,                                       # C - Fecha solicitud
-                fecha_sol_hora,                                        # D - Hora solicitud
-                fecha_limite,                                          # E - Fecha limite
-                fecha_dev_fecha,                                       # F - Fecha real dev
-                fecha_dev_hora,                                        # G - Hora dev
-                p.estudiante.carnet or 'N/A',                          # H - Carnet
-                nombre_persona,                                        # I - Nombre
-                carrera_nombre,                                        # J - Carrera
-                p.estudiante.ano_cursado or 'N/A',                     # K - Año
-                equipos_lista,                                         # L - Equipos
-                entregado_por,                                         # M - Entregado por
-                recibido_por,                                          # N - Recibido por
-                p.estado,                                              # O - Estado
-                p.observaciones or '',                                 # P - Observaciones
+                idx,
+                p.id,
+                fecha_sol_fecha,
+                fecha_sol_hora,
+                fecha_limite,
+                fecha_dev_fecha,
+                fecha_dev_hora,
+                p.estudiante.carnet or 'N/A',
+                nombre_persona,
+                carrera_nombre,
+                p.estudiante.ano_cursado or 'N/A',
+                equipos_lista,
+                entregado_por,
+                recibido_por,
+                p.estado,
+                p.observaciones or '',
             ]
 
-            row_num = fila_inicio + idx - 1
-            ws.append(fila_datos)
-            ws.row_dimensions[row_num].height = 22
+            row_num = fila_inicio1 + idx - 1
+            ws1.append(fila_datos)
+            ws1.row_dimensions[row_num].height = 22
 
             for col_idx, val in enumerate(fila_datos, start=1):
-                cell = ws.cell(row=row_num, column=col_idx)
+                cell = ws1.cell(row=row_num, column=col_idx)
                 cell.border    = border_all
                 cell.font      = font_normal
                 cell.alignment = align_center if col_idx in (1, 2, 3, 4, 5, 6, 7, 10, 11, 14, 15) else align_left
@@ -536,24 +562,136 @@ def exportar_reporte_excel(request):
 
             total_tickets += 1
 
-        # ── Fila de totales ───────────────────────────────────────────────────
-        row_totales = fila_inicio + total_tickets
-        ws.merge_cells(f'A{row_totales}:K{row_totales}')
-        cell_tot = ws[f'A{row_totales}']
-        cell_tot.value     = f'TOTAL: {total_tickets} préstamos devueltos  |  {total_equipos} equipos prestados en total'
-        cell_tot.font      = Font(name='Calibri', bold=True, size=10, color=COLOR_ULSA)
-        cell_tot.fill      = PatternFill(fill_type='solid', start_color='E8F5E9', end_color='E8F5E9')
-        cell_tot.alignment = align_center
-        cell_tot.border    = border_all
-        ws.row_dimensions[row_totales].height = 22
+        # Fila de totales Hoja 1
+        row_totales1 = fila_inicio1 + total_tickets
+        ws1.merge_cells(f'A{row_totales1}:P{row_totales1}')
+        cell_tot1 = ws1[f'A{row_totales1}']
+        cell_tot1.value     = f'TOTAL MES: {total_tickets} préstamos  |  {cant_devueltos} devueltos  |  {cant_activos} activos  |  {cant_atrasados} atrasados  |  {total_equipos} equipos involucrados en total'
+        cell_tot1.font      = Font(name='Calibri', bold=True, size=10, color=COLOR_ULSA)
+        cell_tot1.fill      = PatternFill(fill_type='solid', start_color='E8F5E9', end_color='E8F5E9')
+        cell_tot1.alignment = align_center
+        cell_tot1.border    = border_all
+        ws1.row_dimensions[row_totales1].height = 22
 
-        # ── Anchos de columna ─────────────────────────────────────────────────
-        anchos = [5, 8, 13, 10, 13, 13, 10, 12, 30, 28, 6, 45, 20, 20, 12, 30]
-        for i, ancho in enumerate(anchos, start=1):
-            ws.column_dimensions[get_column_letter(i)].width = ancho
+        anchos1 = [5, 8, 13, 10, 13, 13, 10, 12, 30, 28, 6, 45, 20, 20, 12, 30]
+        for i, ancho in enumerate(anchos1, start=1):
+            ws1.column_dimensions[get_column_letter(i)].width = ancho
 
-        # ── Freeze panes (congelar encabezados) ───────────────────────────────
-        ws.freeze_panes = 'A5'
+        ws1.freeze_panes = 'A5'
+
+        # ======================================================================
+        # HOJA 2: ESTADO DE INVENTARIO EN BODEGA
+        # ======================================================================
+        ws2 = wb.create_sheet(title="Estado de Inventario")
+
+        TOTAL_COLS2 = 10  # A..J
+
+        # Fila 1: Título institucional
+        ws2.merge_cells(f'A1:{get_column_letter(TOTAL_COLS2)}1')
+        titulo2 = ws2['A1']
+        titulo2.value = 'INVENTARIO GENERAL DE EQUIPOS DEPORTIVOS — ULSA'
+        titulo2.font    = font_white14
+        titulo2.fill    = fill_ulsa
+        titulo2.alignment = align_center
+        ws2.row_dimensions[1].height = 30
+
+        # Fila 2: Subtítulo
+        ws2.merge_cells(f'A2:{get_column_letter(TOTAL_COLS2)}2')
+        subtitulo2 = ws2['A2']
+        subtitulo2.value = f'Estado de Bodega de Deportes — Generado: {format_dt(hoy, "%d/%m/%Y %H:%M")}'
+        subtitulo2.font    = Font(name='Calibri', bold=True, size=10, color=COLOR_ULSA)
+        subtitulo2.alignment = align_center
+        ws2.row_dimensions[2].height = 22
+
+        # Fila 3: Separación
+        ws2.row_dimensions[3].height = 8
+
+        # Fila 4: Encabezados Hoja 2
+        encabezados2 = [
+            'N°', 'ID Equipo',
+            'Nombre del Equipo', 'Marca / Modelo', 'Color',
+            'Cantidad Total', 'Disponible', 'En Préstamo',
+            'Estado Stock', 'Descripción'
+        ]
+        ws2.append([''] * TOTAL_COLS2)  # placeholder fila 3
+        for col_idx, enc in enumerate(encabezados2, start=1):
+            cell = ws2.cell(row=4, column=col_idx, value=enc)
+            cell.fill      = fill_header
+            cell.font      = font_white11
+            cell.alignment = align_center
+            cell.border    = border_all
+        ws2.row_dimensions[4].height = 28
+
+        equipos_all = Equipo.objects.all().order_by('nombre')
+        sum_total      = 0
+        sum_disponibles = 0
+        sum_prestados   = 0
+
+        for idx, eq in enumerate(equipos_all, start=1):
+            es_par = (idx % 2 == 0)
+            fill_color = COLOR_FILA_PAR if es_par else COLOR_FILA_IMPAR
+            fill_fila = PatternFill(fill_type='solid', start_color=fill_color, end_color=fill_color)
+
+            en_prestamo = max(0, eq.cantidad_total - eq.cantidad_disponible)
+            sum_total       += eq.cantidad_total
+            sum_disponibles += eq.cantidad_disponible
+            sum_prestados   += en_prestamo
+
+            if eq.cantidad_disponible == 0:
+                estado_stock = 'AGOTADO'
+                color_stock  = 'FFCDD2'  # rojo
+            elif eq.cantidad_disponible <= 2:
+                estado_stock = 'STOCK BAJO'
+                color_stock  = 'FFF9C4'  # amarillo
+            else:
+                estado_stock = 'DISPONIBLE'
+                color_stock  = 'C8E6C9'  # verde
+
+            fila_inv = [
+                idx,
+                eq.id,
+                eq.nombre,
+                eq.marca_modelo or 'N/A',
+                eq.color or 'N/A',
+                eq.cantidad_total,
+                eq.cantidad_disponible,
+                en_prestamo,
+                estado_stock,
+                eq.descripcion or ''
+            ]
+
+            row_num = 4 + idx
+            ws2.append(fila_inv)
+            ws2.row_dimensions[row_num].height = 22
+
+            for col_idx, val in enumerate(fila_inv, start=1):
+                cell = ws2.cell(row=row_num, column=col_idx)
+                cell.border    = border_all
+                cell.font      = font_normal
+                cell.alignment = align_center if col_idx in (1, 2, 6, 7, 8, 9) else align_left
+
+                if col_idx == 9:  # columna Estado Stock
+                    cell.fill = PatternFill(fill_type='solid', start_color=color_stock, end_color=color_stock)
+                    cell.font = Font(name='Calibri', bold=True, size=10)
+                else:
+                    cell.fill = fill_fila
+
+        # Fila de totales Hoja 2
+        row_totales2 = 5 + equipos_all.count()
+        ws2.merge_cells(f'A{row_totales2}:J{row_totales2}')
+        cell_tot2 = ws2[f'A{row_totales2}']
+        cell_tot2.value     = f'TOTAL INVENTARIO: {equipos_all.count()} tipos de equipos  |  {sum_total} unidades registradas en total  |  {sum_disponibles} disponibles  |  {sum_prestados} en préstamo actualmente'
+        cell_tot2.font      = Font(name='Calibri', bold=True, size=10, color=COLOR_ULSA)
+        cell_tot2.fill      = PatternFill(fill_type='solid', start_color='E8F5E9', end_color='E8F5E9')
+        cell_tot2.alignment = align_center
+        cell_tot2.border    = border_all
+        ws2.row_dimensions[row_totales2].height = 22
+
+        anchos2 = [5, 10, 30, 25, 15, 15, 13, 13, 14, 35]
+        for i, ancho in enumerate(anchos2, start=1):
+            ws2.column_dimensions[get_column_letter(i)].width = ancho
+
+        ws2.freeze_panes = 'A5'
 
         # ── Respuesta HTTP usando BytesIO ─────────────────────────────────────
         from io import BytesIO

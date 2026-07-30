@@ -63,10 +63,10 @@ export function ReportsDownload() {
     (async () => {
       try {
         const loans = await fetchAdminLoans();
-        // Filtrar por mes seleccionado
+        // Filtrar por mes seleccionado (todos los estados)
         const filtrados = loans.filter(loan => {
           const d = new Date(loan.requestDate);
-          return d.getFullYear() === year && (d.getMonth() + 1) === month && loan.status === 'returned';
+          return d.getFullYear() === year && (d.getMonth() + 1) === month;
         });
         const reportData = filtrados.map((request) => ({
           id:                request.loanGroupId || request.id,
@@ -104,7 +104,7 @@ export function ReportsDownload() {
           Reportes de Préstamos
         </CardTitle>
         <CardDescription>
-          Descarga los reportes mensuales de préstamos devueltos
+          Descarga los reportes mensuales de préstamos e inventario general
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -164,8 +164,7 @@ export function ReportsDownload() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Incluye únicamente préstamos con estado <strong>Devuelto</strong> en el mes seleccionado.
-          El Excel contiene formato profesional con colores y totales.
+          El archivo Excel contiene <strong>2 pestañas</strong>: 1) Préstamos del mes (todos los estados con resumen KPI) y 2) Inventario completo de equipos en bodega.
         </p>
       </CardContent>
     </Card>
