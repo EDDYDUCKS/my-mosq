@@ -107,6 +107,11 @@ export default function AdminDashboard() {
   const totalEquipment = equipment.reduce((sum, eq) => sum + eq.total, 0);
   const availableEquipment = equipment.reduce((sum, eq) => sum + eq.available, 0);
   const categoriesCount = useMemo(() => new Set(equipment.map((item) => item.category)).size, [equipment]);
+  const recentLoans = useMemo(() => {
+    return [...loans]
+      .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime())
+      .slice(0, 3);
+  }, [loans]);
 
   const navItems = [
     { label: 'Dashboard', href: '/admin', icon: <BarChart3 className="w-4 h-4" /> },
@@ -258,7 +263,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {loans.slice(0, 3).map((request) => (
+                  {recentLoans.map((request) => (
                     <div key={request.id} className="flex items-center justify-between pb-4 border-b border-border last:border-0">
                       <div>
                         <p className="font-semibold text-sm text-foreground">
