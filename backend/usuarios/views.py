@@ -7,7 +7,9 @@ from rest_framework import parsers
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view, permission_classes, renderer_classes
 from rest_framework.renderers import BaseRenderer, JSONRenderer
-from rest_framework.exceptions import PermissionDenied
+import zoneinfo
+from django.db import transaction
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from rest_framework.permissions import IsAuthenticated
@@ -208,6 +210,16 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         if self.request.user.sancionado:
             raise PermissionDenied('No puedes solicitar préstamos porque tienes una sanción activa.')
 
+        # Validar Horario de Atención de Bodega (Lunes a Sábado, 7:00 AM - 7:00 PM, UTC-6)
+        try:
+            nicaragua_tz = zoneinfo.ZoneInfo('America/Managua')
+            now_ni = timezone.now().astimezone(nicaragua_tz)
+            if now_ni.isoweekday() == 7 or now_ni.hour < 7 or now_ni.hour >= 19:
+                raise PermissionDenied('La bodega de deportes está cerrada en este momento. Horario de atención: Lunes a Sábado de 7:00 AM a 7:00 PM.')
+        except Exception as e:
+            if isinstance(e, PermissionDenied):
+                raise e
+
         # Solo los estudiantes (@est.ulsa.edu.ni) deben tener carnet y carrera
         # Los profesores (@ac.ulsa.edu.ni) y staff (@ulsa.edu.ni) pueden prestar sin esos datos
         es_estudiante = self.request.user.email.lower().endswith('@est.ulsa.edu.ni')
@@ -233,8 +245,15 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         save_kwargs = {}
 
         if nuevo_estado == 'ACTIVO' and estado_actual != 'ACTIVO':
-            save_kwargs['entregado_por'] = self.request.user
             p_inst = serializer.instance
+            # Verificación Anti-Overbooking
+            for detalle in p_inst.detalles.select_related('equipo').all():
+                eq = detalle.equipo
+                disp = eq.recalcular_disponibilidad()
+                if disp < detalle.cantidad:
+                    raise ValidationError(f"No hay suficiente stock disponible de '{eq.nombre}' (Quedan {disp} disponibles, solicita {detalle.cantidad}).")
+
+            save_kwargs['entregado_por'] = self.request.user
             registrar_auditoria(
                 usuario=self.request.user,
                 accion='APROBAR_PRESTAMO',
@@ -281,6 +300,55 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             )
 
         serializer.save(**save_kwargs)
+        # Recalcular disponibilidades
+        for detalle in serializer.instance.detalles.select_related('equipo').all():
+            detalle.equipo.recalcular_disponibilidad()
+
+    @action(detail=True, methods=['post'])
+    def declarar_perdido(self, request, pk=None):
+        """Marca un préstamo como PERDIDO, descuenta patrimonio total y sanciona al estudiante."""
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied('Solo administradores pueden declarar equipos perdidos.')
+
+        prestamo = self.get_object()
+        if prestamo.estado == 'PERDIDO':
+            return Response({'detail': 'Este préstamo ya fue marcado como perdido.'}, status=400)
+
+        motivo = request.data.get('motivo', 'Equipo extraviado / no devuelto')
+
+        with transaction.atomic():
+            prestamo.estado = 'PERDIDO'
+            prestamo.observaciones = f"[EQUIPO PERDIDO] {motivo}"
+            prestamo.save(update_fields=['estado', 'observaciones'])
+
+            for detalle in prestamo.detalles.select_related('equipo').all():
+                eq = detalle.equipo
+                eq.cantidad_total = max(0, eq.cantidad_total - detalle.cantidad)
+                eq.save(update_fields=['cantidad_total'])
+                eq.recalcular_disponibilidad()
+
+            sancion = Sancion.objects.create(
+                estudiante=prestamo.estudiante,
+                creada_por=request.user,
+                severity='restriction',
+                reason=f"Reposición por equipo perdido en Solicitud #{prestamo.id}: {motivo}",
+                notes="Sanción automática por extravío de patrimonio universitario."
+            )
+
+            registrar_auditoria(
+                usuario=request.user,
+                accion='EDITAR_EQUIPO',
+                descripcion=f"Préstamo #{prestamo.id} declarado como PERDIDO para {prestamo.estudiante.username}. Se descontó stock total y se generó sanción.",
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+            enviar_notificacion_email(
+                destinatario_email=prestamo.estudiante.email,
+                asunto=f"Notificación de Equipo Extraviado #{prestamo.id} - ULSA",
+                mensaje_texto=f"Hola {prestamo.estudiante.first_name}, tu préstamo #{prestamo.id} ha sido reportado como EXTRAVIADO/PERDIDO. Se ha registrado una sanción por reposición en tu cuenta."
+            )
+
+        return Response(PrestamoSerializer(prestamo).data)
 
     @action(detail=True, methods=['post'])
     def cancelar(self, request, pk=None):

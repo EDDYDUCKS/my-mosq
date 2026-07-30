@@ -49,6 +49,18 @@ class Equipo(models.Model):
     def __str__(self):
         return self.nombre
 
+    def recalcular_disponibilidad(self):
+        from django.db.models import Sum
+        prestados_activos = self.detalleprestamo_set.filter(
+            prestamo__estado='ACTIVO'
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+
+        nueva_disponible = max(0, self.cantidad_total - self.cantidad_mantenimiento - prestados_activos)
+        if self.cantidad_disponible != nueva_disponible:
+            self.cantidad_disponible = nueva_disponible
+            self.save(update_fields=['cantidad_disponible'])
+        return nueva_disponible
+
 # --- MODELO PRESTAMO (EL TICKET GENERAL) ---
 class Prestamo(models.Model):
     ESTADOS_PRESTAMO = [
@@ -57,6 +69,7 @@ class Prestamo(models.Model):
         ('DEVUELTO', 'Devuelto'),
         ('RECHAZADO', 'Rechazado'),
         ('ATRASADO', 'Atrasado'),
+        ('PERDIDO', 'Perdido / Extraviado'),
     ]
     estudiante = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='prestamos_recibidos')
     entregado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='prestamos_entregados')

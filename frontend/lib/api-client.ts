@@ -436,6 +436,14 @@ export async function fetchAuditLogs(): Promise<AuditLog[]> {
   return await apiRequest<AuditLog[]>('/bitacora/');
 }
 
+export async function declareLoanLost(groupId: string, reason?: string): Promise<LoanRequest> {
+  const data = await apiRequest<BackendPrestamo>(`/prestamos/${groupId}/declarar_perdido/`, {
+    method: 'POST',
+    body: JSON.stringify({ motivo: reason }),
+  });
+  return mapLoanRequest(data);
+}
+
 export async function deleteEquipment(equipmentId: string): Promise<void> {
   await apiRequest(`/equipos/${equipmentId}/`, {
     method: 'DELETE',

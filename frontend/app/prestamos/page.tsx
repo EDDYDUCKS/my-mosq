@@ -12,7 +12,8 @@ import { useAuth } from '@/lib/auth-context';
 import { fetchEquipment } from '@/lib/api-client';
 import { Equipment } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Home, FileText, ShoppingCart, Search } from 'lucide-react';
+import { Home, FileText, ShoppingCart, Search, Clock } from 'lucide-react';
+import { isWarehouseOpen } from '@/lib/schedule';
 
 function PrestamosPageContent() {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
@@ -25,6 +26,8 @@ function PrestamosPageContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   useCart();
+
+  const warehouseStatus = useMemo(() => isWarehouseOpen(), []);
 
   useEffect(() => {
     const view = searchParams.get('view');
@@ -98,6 +101,16 @@ function PrestamosPageContent() {
       <main className="min-h-screen bg-background lg:pl-72">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-mobile-nav">
+            {!warehouseStatus.isOpen && (
+              <div className="mb-6 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 rounded-xl p-4 flex items-center gap-3 text-amber-900 dark:text-amber-200 shadow-sm">
+                <Clock className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 animate-pulse" />
+                <div className="text-xs sm:text-sm">
+                  <p className="font-bold">🕒 La Bodega de Deportes está cerrada en este momento</p>
+                  <p className="opacity-90">Horario oficial de atención: <strong>{warehouseStatus.scheduleText}</strong>. Puedes seleccionar equipos en el carrito, pero la entrega se procesará en horario laboral.</p>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'catalog' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

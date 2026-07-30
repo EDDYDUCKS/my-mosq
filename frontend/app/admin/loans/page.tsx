@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ProtectedLayout } from '@/components/protected-layout';
 import { AppHeader } from '@/components/app-header';
-import { fetchAdminLoans, markLoanAsReturned, updateLoanStatus, createSanction } from '@/lib/api-client';
+import { fetchAdminLoans, markLoanAsReturned, updateLoanStatus, createSanction, declareLoanLost } from '@/lib/api-client';
 import { LoanRequest } from '@/lib/types';
 import { useNotifications } from '@/lib/notifications-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,6 +92,11 @@ export default function AdminLoansPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'overdue' | 'returned' | 'rejected'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Estado para declarar equipo perdido
+  const [lostTarget, setLostTarget] = useState<LoanGroup | null>(null);
+  const [lostReason, setLostReason] = useState('');
+  const [declaringLost, setDeclaringLost] = useState(false);
+
   const { addNotification } = useNotifications();
 
   const reload = async () => {
@@ -108,7 +113,24 @@ export default function AdminLoansPage() {
       await updateLoanStatus(group.groupId, 'ACTIVO');
       await reload();
       addNotification('Préstamo aprobado', 'El equipo fue marcado como entregado.', 'success');
+    } catch (err: any) {
+      addNotification('Error al aprobar', err?.message || 'No hay suficiente stock disponible.', 'error');
     } finally { setWorkingGroupId(null); }
+  };
+
+  const confirmDeclareLost = async () => {
+    if (!lostTarget) return;
+    setDeclaringLost(true);
+    try {
+      await declareLoanLost(lostTarget.groupId, lostReason.trim() || undefined);
+      await reload();
+      addNotification('Equipo Declarado Perdido', 'Se descontó stock de bodega y se sancionó al estudiante.', 'warning');
+      setLostTarget(null);
+    } catch (e: any) {
+      addNotification('Error', e?.message || 'No se pudo procesar.', 'error');
+    } finally {
+      setDeclaringLost(false);
+    }
   };
 
   const openRejectDialog = (group: LoanGroup) => {
@@ -373,14 +395,25 @@ export default function AdminLoansPage() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  onClick={() => initiateReturn(group.groupId, group.studentId)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white gap-2"
-                  disabled={working}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  {working ? 'Actualizando...' : 'Marcar Devuelto'}
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full">
+                  <Button
+                    onClick={() => initiateReturn(group.groupId, group.studentId)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                    disabled={working}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {working ? 'Actualizando...' : 'Marcar Devuelto'}
+                  </Button>
+                  <Button
+                    onClick={() => { setLostTarget(group); setLostReason(''); }}
+                    variant="outline"
+                    className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white gap-1 text-xs"
+                    disabled={working}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Declarar Perdido
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -640,6 +673,43 @@ export default function AdminLoansPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── MODAL: Declarar Perdido / Extraviado ── */}
+      <Dialog open={!!lostTarget} onOpenChange={(open) => { if (!open) setLostTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" /> Declarar Equipo Perdido #{lostTarget?.groupId}
+            </DialogTitle>
+            <DialogDescription>
+              Esta acción reducirá la cantidad total de inventario en bodega y registrará una sanción por reposición para {lostTarget?.studentName}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label htmlFor="lost-reason">Detalles / Motivo del extravío</Label>
+            <textarea
+              id="lost-reason"
+              className="w-full min-h-[90px] rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Ej: Estudiante indica que dejó el equipo en la cancha y fue extraviado..."
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLostTarget(null)} disabled={declaringLost}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={confirmDeclareLost}
+              disabled={declaringLost}
+            >
+              {declaringLost ? 'Procesando...' : 'Confirmar Pérdida'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <SpecialLoanDialog 
         open={specialLoanOpen} 
         onOpenChange={setSpecialLoanOpen}
