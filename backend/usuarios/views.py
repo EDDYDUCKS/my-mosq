@@ -434,6 +434,18 @@ def exportar_reporte_excel(request):
             cell.border    = border_all
         ws.row_dimensions[4].height = 28
 
+        # Helper seguro para formatear fechas sin error de zona horaria
+        def format_dt(dt_val, fmt='%d/%m/%Y'):
+            if not dt_val:
+                return 'N/A'
+            try:
+                if timezone.is_naive(dt_val):
+                    dt_val = timezone.make_aware(dt_val, tz_local)
+                dt_local = timezone.localtime(dt_val, tz_local)
+                return dt_local.strftime(fmt)
+            except Exception:
+                return str(dt_val)[:10]
+
         # ── Filas de datos ────────────────────────────────────────────────────
         fila_inicio = 5
         total_tickets  = 0
@@ -444,18 +456,11 @@ def exportar_reporte_excel(request):
             fill_color = COLOR_FILA_PAR if es_par else COLOR_FILA_IMPAR
             fill_fila = PatternFill(fill_type='solid', start_color=fill_color, end_color=fill_color)
 
-            # Conversión de fechas a hora local Nicaragua (UTC-6)
-            fecha_sol_local = timezone.localtime(p.fecha_prestamo, tz_local) if p.fecha_prestamo else None
-            fecha_dev_local = timezone.localtime(p.fecha_recepcion, tz_local) if p.fecha_recepcion else None
-
-            # Cargar fecha_devolucion (limite)
-            fecha_limite = None
-            if p.fecha_devolucion:
-                try:
-                    fd = timezone.localtime(p.fecha_devolucion, tz_local)
-                    fecha_limite = fd.strftime('%d/%m/%Y')
-                except Exception:
-                    fecha_limite = str(p.fecha_devolucion)[:10]
+            fecha_sol_fecha = format_dt(p.fecha_prestamo, '%d/%m/%Y')
+            fecha_sol_hora  = format_dt(p.fecha_prestamo, '%H:%M')
+            fecha_limite    = format_dt(p.fecha_devolucion, '%d/%m/%Y')
+            fecha_dev_fecha = format_dt(p.fecha_recepcion, '%d/%m/%Y')
+            fecha_dev_hora  = format_dt(p.fecha_recepcion, '%H:%M')
 
             nombre_persona = p.solicitante_externo if p.solicitante_externo else \
                 f"{p.estudiante.first_name} {p.estudiante.last_name}".strip() or p.estudiante.username
@@ -486,11 +491,11 @@ def exportar_reporte_excel(request):
             fila_datos = [
                 idx,                                                   # A - N°
                 p.id,                                                  # B - Ticket
-                fecha_sol_local.strftime('%d/%m/%Y') if fecha_sol_local else 'N/A',  # C - Fecha solicitud
-                fecha_sol_local.strftime('%H:%M') if fecha_sol_local else 'N/A',     # D - Hora solicitud
-                fecha_limite or 'N/A',                                 # E - Fecha limite
-                fecha_dev_local.strftime('%d/%m/%Y') if fecha_dev_local else 'N/A',  # F - Fecha real dev
-                fecha_dev_local.strftime('%H:%M') if fecha_dev_local else 'N/A',     # G - Hora dev
+                fecha_sol_fecha,                                       # C - Fecha solicitud
+                fecha_sol_hora,                                        # D - Hora solicitud
+                fecha_limite,                                          # E - Fecha limite
+                fecha_dev_fecha,                                       # F - Fecha real dev
+                fecha_dev_hora,                                        # G - Hora dev
                 p.estudiante.carnet or 'N/A',                          # H - Carnet
                 nombre_persona,                                        # I - Nombre
                 carrera_nombre,                                        # J - Carrera

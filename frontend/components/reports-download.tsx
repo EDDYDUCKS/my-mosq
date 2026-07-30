@@ -68,20 +68,19 @@ export function ReportsDownload() {
           return d.getFullYear() === year && (d.getMonth() + 1) === month && loan.status === 'returned';
         });
         const reportData = filtrados.map((request) => ({
-          ticket:           request.loanGroupId || request.id,
-          fechaSolicitud:   new Date(request.requestDate).toLocaleDateString('es-NI'),
-          horaSolicitud:    new Date(request.requestDate).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' }),
-          fechaDevolucion:  request.receivedAt ? new Date(request.receivedAt).toLocaleDateString('es-NI') : 'Pendiente',
-          horaDevolucion:   request.receivedAt ? new Date(request.receivedAt).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' }) : 'Pendiente',
-          numeroCarnet:     request.studentCardId || 'N/D',
-          nombreEstudiante: request.studentName,
-          carrera:          request.studentCareer || 'N/D',
-          año:              request.studentYear || 'N/D',
+          id:                request.loanGroupId || request.id,
+          fecha:             new Date(request.requestDate).toLocaleDateString('es-NI'),
+          horaEntrega:       new Date(request.requestDate).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' }),
+          horaDevolucion:    request.receivedAt ? new Date(request.receivedAt).toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' }) : 'Pendiente',
+          numeroCarnet:      request.studentCardId || 'N/D',
+          nombreEstudiante:  request.studentName,
+          carrera:           request.studentCareer || 'N/D',
+          año:               request.studentYear || 'N/D',
           descripcionEquipo: request.equipmentName,
-          cantidad:         request.quantity,
-          personaEntrega:   request.deliveredByName || 'N/D',
-          personaRecibe:    request.receivedByName || 'N/D',
-          estado:           request.backendStatus || request.status,
+          cantidad:          request.quantity,
+          personaEntrega:    request.deliveredByName || 'N/D',
+          personaRecibe:     request.receivedByName || 'N/D',
+          estado:            request.backendStatus || request.status,
         }));
 
         const csvContent = generateCSVReport(reportData);
