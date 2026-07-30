@@ -97,18 +97,31 @@ function stripAccents(str: string): string {
 
 /**
  * Parsea una fecha del backend de forma segura respecto a la zona horaria.
- * El backend puede devolver:
- *   - "2026-07-28" (solo fecha) → new Date() la interpreta como UTC midnight → un día antes en Nicaragua
- *   - "2026-07-28T23:59:00" (con hora) → new Date() la interpreta como hora local ✓
- * Solución: si no tiene hora, agregar T12:00:00 para anclarla al mediodía local.
+ *
+ * @param dateOnly  Si true, trata el valor como solo-fecha (ignora la hora UTC).
+ *                  Usar para campos como fecha_devolucion que el backend guarda
+ *                  como "2026-07-30T00:00:00Z" (medianoche UTC), lo cual en
+ *                  Nicaragua (UTC-6) se convertiría al 29 — incorrecto.
+ *                  La solución: extraer YYYY-MM-DD y anclar al mediodía local.
+ *
+ *                  Si false (default), parsea el timestamp completo tal cual
+ *                  (útil para fecha_prestamo y fecha_recepcion con hora real).
  */
-function parseDateSafe(dateStr: string): Date {
+function parseDateSafe(dateStr: string, dateOnly = false): Date {
   if (!dateStr) return new Date();
-  // Si ya tiene hora (contiene 'T' o espacio), parsear directo
+
+  if (dateOnly) {
+    // Extraer solo YYYY-MM-DD (antes del 'T' o espacio) y usar mediodía local
+    const datePart = dateStr.split('T')[0].split(' ')[0];
+    return new Date(`${datePart}T12:00:00`);
+  }
+
+  // Timestamp real: si ya tiene hora, parsear directo
   if (dateStr.includes('T') || dateStr.includes(' ')) {
     return new Date(dateStr);
   }
-  // Solo fecha (YYYY-MM-DD): anclar a mediodia local para evitar el salto de zona horaria
+
+  // Solo fecha sin hora: anclar a mediodía local
   return new Date(`${dateStr}T12:00:00`);
 }
 
@@ -301,7 +314,7 @@ function mapLoans(prestamos: BackendPrestamo[]): LoanRequest[] {
         : `Equipo #${detalle.equipo}`,
       quantity: detalle.cantidad,
       requestDate: parseDateSafe(prestamo.fecha_prestamo),
-      dueDate: parseDateSafe(prestamo.fecha_devolucion || prestamo.fecha_prestamo),
+      dueDate: parseDateSafe(prestamo.fecha_devolucion || prestamo.fecha_prestamo, true), // dateOnly: fecha_devolucion es solo fecha, no timestamp
       receivedAt: prestamo.fecha_recepcion ? parseDateSafe(prestamo.fecha_recepcion) : undefined,
       status: mapLoanStatus(prestamo.estado),
       backendStatus: prestamo.estado,
