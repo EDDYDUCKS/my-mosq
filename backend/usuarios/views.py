@@ -307,6 +307,7 @@ class SancionViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAdminUser])
 def exportar_reporte_excel(request):
     import calendar
+    from datetime import datetime as dt
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
@@ -352,9 +353,10 @@ def exportar_reporte_excel(request):
     }
 
     # ── Solo préstamos DEVUELTOS en el mes seleccionado ──────────────────
-    primer_dia = timezone.datetime(anio, mes_num, 1, tzinfo=timezone.get_current_timezone())
+    tz_local = timezone.get_current_timezone()
+    primer_dia = timezone.make_aware(dt(anio, mes_num, 1, 0, 0, 0), tz_local)
     ultimo_dia_num = calendar.monthrange(anio, mes_num)[1]
-    ultimo_dia = timezone.datetime(anio, mes_num, ultimo_dia_num, 23, 59, 59, tzinfo=timezone.get_current_timezone())
+    ultimo_dia = timezone.make_aware(dt(anio, mes_num, ultimo_dia_num, 23, 59, 59), tz_local)
 
     prestamos = (
         Prestamo.objects
@@ -434,7 +436,6 @@ def exportar_reporte_excel(request):
         fill_fila = PatternFill('solid', fgColor=COLOR_FILA_PAR if es_par else COLOR_FILA_IMPAR)
 
         # Conversión de fechas a hora local Nicaragua (UTC-6)
-        tz_local = timezone.get_current_timezone()
         fecha_sol_local = timezone.localtime(p.fecha_prestamo, tz_local) if p.fecha_prestamo else None
         fecha_dev_local = timezone.localtime(p.fecha_recepcion, tz_local) if p.fecha_recepcion else None
 
