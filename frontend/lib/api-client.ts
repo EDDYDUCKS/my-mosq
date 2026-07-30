@@ -555,7 +555,14 @@ export async function downloadExcelReportFromApi(mes?: string): Promise<{ blob: 
       Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     },
   });
-  if (!response.ok) throw new Error('Error al descargar el reporte');
+  if (!response.ok) {
+    let errorMsg = `Error HTTP ${response.status}`;
+    try {
+      const json = await response.json();
+      if (json?.detail) errorMsg = json.detail;
+    } catch {}
+    throw new Error(errorMsg);
+  }
   const blob = await response.blob();
   const headerFilename = response.headers.get('X-Filename');
   const filename = headerFilename || `Reporte_Prestamos_${mes || new Date().toISOString().slice(0, 7)}.xlsx`;

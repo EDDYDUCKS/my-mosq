@@ -544,13 +544,17 @@ def exportar_reporte_excel(request):
         # ── Freeze panes (congelar encabezados) ───────────────────────────────
         ws.freeze_panes = 'A5'
 
-        # ── Respuesta HTTP ────────────────────────────────────────────────────
+        # ── Respuesta HTTP usando BytesIO ─────────────────────────────────────
+        from io import BytesIO
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
         nombre_archivo = f'Reporte_Prestamos_{nombre_mes_es}_{anio}.xlsx'
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response = HttpResponse(buffer.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         response['X-Filename'] = nombre_archivo
         response['Access-Control-Expose-Headers'] = 'Content-Disposition, X-Filename'
-        wb.save(response)
         return response
 
     except Exception as e:

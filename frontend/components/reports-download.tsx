@@ -49,8 +49,9 @@ export function ReportsDownload() {
         // Marcar el mes actual como "reporte descargado"
         localStorage.setItem('mosq_last_report_month', getMesStr(now.getFullYear(), now.getMonth() + 1));
         addNotification('Reporte Descargado', `Reporte Excel de ${mesLabel} descargado.`, 'success');
-      } catch {
-        addNotification('Error', 'No se pudo descargar el reporte Excel.', 'error');
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'No se pudo descargar el reporte Excel.';
+        addNotification('Error', message, 'error');
       } finally {
         setIsLoading(false);
       }
