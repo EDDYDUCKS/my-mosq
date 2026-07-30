@@ -226,7 +226,11 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         if es_estudiante and (not self.request.user.carnet or not self.request.user.carrera):
             raise PermissionDenied('Debes completar tu perfil (carnet y carrera) antes de solicitar equipos.')
 
-        serializer.save(estado='PENDIENTE')
+        # La fecha/hora limite de devolución se programa para el MISMO día a las 19:00:00 (Cierre de Bodega)
+        nicaragua_tz = zoneinfo.ZoneInfo('America/Managua')
+        hoy_cierre = timezone.now().astimezone(nicaragua_tz).replace(hour=19, minute=0, second=0, microsecond=0)
+
+        serializer.save(estado='PENDIENTE', fecha_devolucion=hoy_cierre)
 
     def perform_update(self, serializer):
         estado_actual = serializer.instance.estado
@@ -366,8 +370,15 @@ class PrestamoViewSet(viewsets.ModelViewSet):
                 status=400
             )
         
-        prestamo.estado = 'RECHAZADO'
+        prestamo.estado = 'CANCELADO'
         prestamo.save(update_fields=['estado'])
+
+        registrar_auditoria(
+            usuario=request.user,
+            accion='RECHAZAR_PRESTAMO',
+            descripcion=f"Solicitud #{prestamo.id} CANCELADA por el propio estudiante",
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
         
         return Response({'detail': 'Préstamo cancelado exitosamente.'})
 

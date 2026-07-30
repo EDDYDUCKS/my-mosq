@@ -275,6 +275,7 @@ function mapEquipment(item: BackendEquipo): Equipment {
 function mapLoanStatus(status: BackendPrestamo['estado']): LoanRequest['status'] {
   if (status === 'DEVUELTO') return 'returned';
   if (status === 'RECHAZADO') return 'rejected';
+  if (status === 'CANCELADO') return 'cancelado';
   if (status === 'PENDIENTE') return 'pending';
   if (status === 'ATRASADO') return 'pending';
   return 'approved';

@@ -194,11 +194,12 @@ export default function AdminLoansPage() {
 
   const statusLabel = (status: LoanRequest['status']) => {
     switch (status) {
-      case 'pending':  return 'Pendiente';
-      case 'approved': return 'Activo';
-      case 'returned': return 'Devuelto';
-      case 'rejected': return 'Rechazado';
-      default:         return status;
+      case 'pending':   return 'Pendiente';
+      case 'approved':  return 'Activo';
+      case 'returned':  return 'Devuelto';
+      case 'rejected':  return 'Rechazado por Bodega';
+      case 'cancelado': return 'Cancelado por Estudiante';
+      default:          return status;
     }
   };
 
@@ -229,7 +230,7 @@ export default function AdminLoansPage() {
     return g.backendStatus === 'ATRASADO' || (g.status === 'approved' && (due.getTime() - new Date().getTime()) < 0);
   }).length;
   const countReturned = allGroups.filter(g => g.status === 'returned').length;
-  const countRejected = allGroups.filter(g => g.status === 'rejected').length;
+  const countRejected = allGroups.filter(g => g.status === 'rejected' || g.status === 'cancelado').length;
 
   const filteredGroups = allGroups.filter(g => {
     if (searchQuery.trim()) {
@@ -248,7 +249,7 @@ export default function AdminLoansPage() {
     if (statusFilter === 'approved') return g.status === 'approved' && !isOverdue;
     if (statusFilter === 'overdue') return isOverdue;
     if (statusFilter === 'returned') return g.status === 'returned';
-    if (statusFilter === 'rejected') return g.status === 'rejected';
+    if (statusFilter === 'rejected') return g.status === 'rejected' || g.status === 'cancelado';
 
     return true;
   }).sort(sortByDate);
@@ -266,14 +267,15 @@ export default function AdminLoansPage() {
     const isDueToday = group.status === 'approved' && diffDays === 0 && !isOverdue;
 
     // Estilos por estado (borde + cabecera + badge)
-    type StyleKey = 'pending' | 'approved' | 'returned' | 'rejected';
+    type StyleKey = 'pending' | 'approved' | 'returned' | 'rejected' | 'cancelado';
     const statusStyles: Record<StyleKey, { card: string; header: string; badge: string }> = {
-      pending:  { card: 'border-yellow-300 dark:border-yellow-700', header: 'bg-yellow-50 dark:bg-yellow-950/40', badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
-      approved: isOverdue
+      pending:   { card: 'border-yellow-300 dark:border-yellow-700', header: 'bg-yellow-50 dark:bg-yellow-950/40', badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+      approved:  isOverdue
         ? { card: 'border-red-400 dark:border-red-700',    header: 'bg-red-50 dark:bg-red-950/30',      badge: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }
         : { card: 'border-green-300 dark:border-green-700', header: 'bg-green-50 dark:bg-green-950/40',  badge: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-      returned: { card: 'border-blue-200 dark:border-blue-800',    header: 'bg-blue-50/50 dark:bg-blue-950/20',  badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
-      rejected: { card: 'border-border',                            header: 'bg-muted/30',                        badge: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+      returned:  { card: 'border-blue-200 dark:border-blue-800',    header: 'bg-blue-50/50 dark:bg-blue-950/20',  badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+      rejected:  { card: 'border-red-200 dark:border-red-900',     header: 'bg-red-50/30 dark:bg-red-950/20',   badge: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+      cancelado: { card: 'border-border',                           header: 'bg-muted/30',                       badge: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
     };
     const styles = statusStyles[group.status as StyleKey] ?? statusStyles.rejected;
 

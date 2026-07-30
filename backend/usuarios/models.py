@@ -67,7 +67,8 @@ class Prestamo(models.Model):
         ('PENDIENTE', 'Pendiente'),
         ('ACTIVO', 'Activo'),
         ('DEVUELTO', 'Devuelto'),
-        ('RECHAZADO', 'Rechazado'),
+        ('RECHAZADO', 'Rechazado por Bodega'),
+        ('CANCELADO', 'Cancelado por Estudiante'),
         ('ATRASADO', 'Atrasado'),
         ('PERDIDO', 'Perdido / Extraviado'),
     ]

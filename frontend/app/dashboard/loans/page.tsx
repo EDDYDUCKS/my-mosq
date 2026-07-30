@@ -84,6 +84,8 @@ export default function StudentLoansPage() {
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'cancelado':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
       case 'returned':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       default:
@@ -98,7 +100,9 @@ export default function StudentLoansPage() {
       case 'approved':
         return 'Aprobado';
       case 'rejected':
-        return 'Rechazado';
+        return 'Rechazado por Bodega';
+      case 'cancelado':
+        return 'Cancelado por Ti';
       case 'returned':
         return 'Devuelto';
       default:

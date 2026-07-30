@@ -43,8 +43,8 @@ export interface LoanRequest {
   requestDate: Date;
   dueDate: Date;
   receivedAt?: Date;
-  status: 'pending' | 'approved' | 'rejected' | 'returned';
-  backendStatus?: 'PENDIENTE' | 'ACTIVO' | 'DEVUELTO' | 'RECHAZADO' | 'ATRASADO';
+  status: 'pending' | 'approved' | 'rejected' | 'returned' | 'cancelado';
+  backendStatus?: 'PENDIENTE' | 'ACTIVO' | 'DEVUELTO' | 'RECHAZADO' | 'CANCELADO' | 'ATRASADO' | 'PERDIDO';
   deliveredByName?: string;
   receivedByName?: string;
   notes?: string;
