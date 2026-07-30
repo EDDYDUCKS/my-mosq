@@ -7,7 +7,7 @@ import { fetchStudentLoans } from '@/lib/api-client';
 import { LoanRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Home, FileCheck, ShoppingCart, RotateCcw } from 'lucide-react';
+import { Home, FileCheck, ShoppingCart, RotateCcw, Clock, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ReturnQrModal } from '@/components/return-qr-modal';
 import { useAutoRefresh } from '@/lib/use-auto-refresh';
@@ -47,6 +47,16 @@ function groupLoans(loans: LoanRequest[]): LoanGroup[] {
   }
 
   return Array.from(map.values());
+}
+
+/** Formatea una fecha con hora local (evita bug UTC-6 Nicaragua) */
+function formatDateTime(date: Date, includeTime = true): string {
+  return date.toLocaleString('es-NI', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  });
 }
 
 export default function StudentLoansPage() {
@@ -143,40 +153,60 @@ export default function StudentLoansPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Equipos */}
                   <div className="mb-4">
                     <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Equipos solicitados</p>
-                    <ul className="divide-y divide-border rounded-lg border">
+                    <ul className="divide-y divide-border rounded-lg border bg-muted/20">
                       {request.items.map((item, index) => (
                         <li key={`${request.groupId}-${item.equipmentName}-${index}`} className="flex items-center justify-between px-3 py-2 text-sm">
                           <span className="text-foreground font-medium">{item.equipmentName}</span>
-                          <span className="text-muted-foreground">x{item.quantity}</span>
+                          <span className="text-muted-foreground font-mono">x{item.quantity}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Equipos</p>
-                      <p className="text-lg font-bold text-foreground">{request.items.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha Solicitud</p>
-                      <p className="text-sm text-foreground">
-                        {new Date(request.requestDate).toLocaleDateString('es-NI')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha Devolución</p>
-                      <p className="text-sm text-foreground">
-                        {new Date(request.dueDate).toLocaleDateString('es-NI')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Solicitante</p>
-                      <p className="text-sm text-foreground">{request.studentName}</p>
-                    </div>
-                  </div>
+                  {/* Fecha solicitud (con hora) + Fecha límite con urgencia */}
+                  {(() => {
+                    const now = new Date();
+                    const due = new Date(request.dueDate);
+                    due.setHours(23, 59, 59, 999);
+                    const diffMs = due.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                    const isOverdue = (request as { backendStatus?: string }).backendStatus === 'ATRASADO' || (request.status === 'approved' && diffDays < 0);
+                    const isDueToday = request.status === 'approved' && diffDays === 0 && !isOverdue;
+                    return (
+                      <div className="space-y-2 mb-4">
+                        {/* Fecha de solicitud con hora */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                          <span>Solicitado: <span className="text-foreground font-medium">{formatDateTime(new Date(request.requestDate))}</span></span>
+                        </div>
+                        {/* Fecha límite con urgencia */}
+                        <div className={`flex items-center justify-between rounded-lg px-3 py-2 border ${
+                          isOverdue  ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800' :
+                          isDueToday ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800' :
+                                       'bg-muted/40 border-border'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <CalendarClock className={`w-3.5 h-3.5 shrink-0 ${
+                              isOverdue ? 'text-red-500' : isDueToday ? 'text-orange-500' : 'text-muted-foreground'
+                            }`} />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Devolver antes del</p>
+                              <p className={`text-sm font-semibold ${
+                                isOverdue ? 'text-red-600 dark:text-red-400' :
+                                isDueToday ? 'text-orange-600 dark:text-orange-400' :
+                                'text-foreground'
+                              }`}>{formatDateTime(new Date(request.dueDate), false)}</p>
+                            </div>
+                          </div>
+                          {isOverdue  && <span className="text-xs font-bold text-red-600 bg-red-100 dark:bg-red-900/60 px-2 py-0.5 rounded-full">🔴 VENCIDO</span>}
+                          {isDueToday && <span className="text-xs font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/60 px-2 py-0.5 rounded-full">⚠️ HOY</span>}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {request.notes && (
                     <div className="mt-4 pt-4 border-t border-border">
                       <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Notas</p>

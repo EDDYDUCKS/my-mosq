@@ -52,7 +52,7 @@ export const Cart: React.FC = () => {
   const minDateStr = toLocalDateString(minDate);
   
   const maxDate = new Date();
-  maxDate.setDate(maxDate.getDate() + 2);
+  maxDate.setDate(maxDate.getDate() + 1);
   const maxDateStr = toLocalDateString(maxDate);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,7 +157,7 @@ export const Cart: React.FC = () => {
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Máximo 2 días a partir de hoy
+                Puedes devolver hoy o mañana como máximo
               </p>
             </div>
 

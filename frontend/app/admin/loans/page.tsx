@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   BarChart3, Package, FileText, AlertTriangle,
-  CheckCircle, XCircle, QrCode, Plus,
+  CheckCircle, XCircle, QrCode, Plus, Clock, CalendarClock,
 } from 'lucide-react';
 import { useAutoRefresh } from '@/lib/use-auto-refresh';
 import { SpecialLoanDialog } from '@/components/special-loan-dialog';
@@ -61,6 +61,16 @@ function groupLoans(loans: LoanRequest[]): LoanGroup[] {
     map.get(key)!.items.push({ equipmentName: loan.equipmentName, quantity: loan.quantity });
   }
   return Array.from(map.values());
+}
+
+/** Formatea una fecha usando hora LOCAL del navegador (evita bug UTC-6 Nicaragua) */
+function formatDateTime(date: Date, includeTime = true): string {
+  return date.toLocaleString('es-NI', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  });
 }
 
 export default function AdminLoansPage() {
@@ -181,68 +191,123 @@ export default function AdminLoansPage() {
 
   const renderGroup = (group: LoanGroup, closed = false) => {
     const working = workingGroupId === group.groupId;
+
+    // Lógica de urgencia (solo relevante para préstamos activos)
+    const now = new Date();
+    const due = new Date(group.dueDate);
+    due.setHours(23, 59, 59, 999); // fin del día
+    const diffMs = due.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const isOverdue = group.backendStatus === 'ATRASADO' || (group.status === 'approved' && diffDays < 0);
+    const isDueToday = group.status === 'approved' && diffDays === 0 && !isOverdue;
+
+    // Estilos por estado (borde + cabecera + badge)
+    type StyleKey = 'pending' | 'approved' | 'returned' | 'rejected';
+    const statusStyles: Record<StyleKey, { card: string; header: string; badge: string }> = {
+      pending:  { card: 'border-yellow-300 dark:border-yellow-700', header: 'bg-yellow-50 dark:bg-yellow-950/40', badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+      approved: isOverdue
+        ? { card: 'border-red-400 dark:border-red-700',    header: 'bg-red-50 dark:bg-red-950/30',      badge: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }
+        : { card: 'border-green-300 dark:border-green-700', header: 'bg-green-50 dark:bg-green-950/40',  badge: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+      returned: { card: 'border-blue-200 dark:border-blue-800',    header: 'bg-blue-50/50 dark:bg-blue-950/20',  badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+      rejected: { card: 'border-border',                            header: 'bg-muted/30',                        badge: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+    };
+    const styles = statusStyles[group.status as StyleKey] ?? statusStyles.rejected;
+
     return (
-      <Card key={group.groupId} className={!closed ? 'border-yellow-200 dark:border-yellow-800' : ''}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <CardTitle className="text-lg">Solicitud #{group.groupId}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Solicitante: <span className="font-medium text-foreground">{group.studentName}</span>
+      <Card key={group.groupId} className={`overflow-hidden border-2 ${styles.card} transition-shadow hover:shadow-md`}>
+
+        {/* ── Cabecera coloreada por estado ── */}
+        <div className={`px-4 py-3 ${styles.header} border-b border-border`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground font-medium mb-0.5">Solicitud #{group.groupId}</p>
+              <p className="font-bold text-foreground text-base leading-tight truncate">{group.studentName}</p>
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <Clock className="w-3 h-3 shrink-0" />
+                Solicitado: {formatDateTime(group.requestDate)}
               </p>
             </div>
-            <Badge className={statusColor(group.status)}>{statusLabel(group.status)}</Badge>
+            <Badge className={`${styles.badge} shrink-0 text-xs font-semibold`}>
+              {statusLabel(group.status)}
+            </Badge>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </div>
+
+        <CardContent className="p-4 space-y-4">
+
+          {/* ── Lista de equipos ── */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Equipos solicitados</p>
-            <ul className="divide-y divide-border rounded-lg border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
+              <Package className="w-3 h-3" /> Equipos solicitados
+            </p>
+            <ul className="divide-y divide-border rounded-lg border bg-muted/20">
               {group.items.map((item, i) => (
                 <li key={i} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span className="text-foreground font-medium">{item.equipmentName}</span>
-                  <span className="text-muted-foreground">×{item.quantity}</span>
+                  <span className="text-muted-foreground font-mono">×{item.quantity}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha Solicitud</p>
-              <p className="text-sm text-foreground">{new Date(group.requestDate).toLocaleDateString('es-NI')}</p>
+          {/* ── Fecha límite con indicador de urgencia ── */}
+          <div className={`flex items-center justify-between rounded-lg px-3 py-2.5 border ${
+            isOverdue  ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800' :
+            isDueToday ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800' :
+                         'bg-muted/40 border-border'
+          }`}>
+            <div className="flex items-center gap-2">
+              <CalendarClock className={`w-4 h-4 shrink-0 ${
+                isOverdue ? 'text-red-500' : isDueToday ? 'text-orange-500' : 'text-muted-foreground'
+              }`} />
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Devolver antes del</p>
+                <p className={`text-sm font-semibold ${
+                  isOverdue ? 'text-red-600 dark:text-red-400' :
+                  isDueToday ? 'text-orange-600 dark:text-orange-400' :
+                  'text-foreground'
+                }`}>
+                  {formatDateTime(group.dueDate, false)}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha Límite</p>
-              <p className="text-sm text-foreground">{new Date(group.dueDate).toLocaleDateString('es-NI')}</p>
-            </div>
+            {isOverdue  && <span className="text-xs font-bold text-red-600 bg-red-100 dark:bg-red-900/60 px-2 py-0.5 rounded-full">🔴 VENCIDO</span>}
+            {isDueToday && <span className="text-xs font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/60 px-2 py-0.5 rounded-full">⚠️ HOY</span>}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Entregado por</p>
-              <p className="text-sm text-foreground">{group.deliveredByName || 'Pendiente'}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Recibido por</p>
-              <p className="text-sm text-foreground">{group.receivedByName || 'Pendiente'}</p>
-            </div>
-          </div>
-
-          {group.receivedAt && (
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Fecha de recepción</p>
-              <p className="text-sm text-foreground">{new Date(group.receivedAt).toLocaleString('es-NI')}</p>
+          {/* ── Entregado / Recibido — solo si tienen valor ── */}
+          {(group.deliveredByName || group.receivedByName || group.receivedAt) && (
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border">
+              {group.deliveredByName && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Entregado por</p>
+                  <p className="text-sm text-foreground">{group.deliveredByName}</p>
+                </div>
+              )}
+              {group.receivedByName && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Recibido por</p>
+                  <p className="text-sm text-foreground">{group.receivedByName}</p>
+                </div>
+              )}
+              {group.receivedAt && (
+                <div className="col-span-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Recibido el</p>
+                  <p className="text-sm text-foreground">{formatDateTime(group.receivedAt)}</p>
+                </div>
+              )}
             </div>
           )}
 
+          {/* ── Notas ── */}
           {group.representative?.notes && (
-            <div className="bg-muted/50 p-3 rounded-md">
-              <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Notas / Observaciones</p>
+            <div className="bg-muted/50 rounded-lg px-3 py-2 border border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Observaciones</p>
               <p className="text-sm text-foreground">{group.representative.notes}</p>
             </div>
           )}
 
+          {/* ── Botones de acción ── */}
           {!closed && (
             <div className="flex gap-2 pt-1">
               {group.status === 'pending' ? (
@@ -268,7 +333,7 @@ export default function AdminLoansPage() {
               ) : (
                 <Button
                   onClick={() => initiateReturn(group.groupId, group.studentId)}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-2"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white gap-2"
                   disabled={working}
                 >
                   <CheckCircle className="w-4 h-4" />
@@ -277,6 +342,7 @@ export default function AdminLoansPage() {
               )}
             </div>
           )}
+
         </CardContent>
       </Card>
     );
