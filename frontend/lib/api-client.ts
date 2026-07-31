@@ -434,7 +434,10 @@ export interface AuditLog {
 }
 
 export async function fetchAuditLogs(): Promise<AuditLog[]> {
-  return await apiRequest<AuditLog[]>('/bitacora/');
+  const data = await apiRequest<any>('/bitacora/');
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.results)) return data.results;
+  return [];
 }
 
 export async function declareLoanLost(groupId: string, reason?: string): Promise<LoanRequest> {
