@@ -257,7 +257,7 @@ export default function AdminLoansPage() {
   const renderGroup = (group: LoanGroup, closed = false) => {
     const working = workingGroupId === group.groupId;
 
-    // Lógica de urgencia (solo relevante para préstamos activos)
+    // Lógica de urgencia
     const now = new Date();
     const due = new Date(group.dueDate);
     due.setHours(23, 59, 59, 999); // fin del día
