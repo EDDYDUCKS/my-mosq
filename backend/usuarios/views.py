@@ -351,7 +351,7 @@ class PrestamoViewSet(viewsets.ModelViewSet):
                 usuario=request.user,
                 accion='EDITAR_EQUIPO',
                 descripcion=f"Préstamo #{prestamo.id} declarado como PERDIDO para {prestamo.estudiante.username}. Se descontó stock total y se generó sanción.",
-                ip_address=request.META.get('REMOTE_ADDR')
+                ip_address=request
             )
 
             enviar_notificacion_email(
@@ -385,7 +385,7 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             usuario=request.user,
             accion='RECHAZAR_PRESTAMO',
             descripcion=f"Solicitud #{prestamo.id} CANCELADA por el propio estudiante",
-            ip_address=request.META.get('REMOTE_ADDR')
+            ip_address=request
         )
         
         return Response({'detail': 'Préstamo cancelado exitosamente.'})
@@ -443,7 +443,13 @@ class SancionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self._ensure_admin()
-        serializer.save(creada_por=self.request.user)
+        sancion = serializer.save(creada_por=self.request.user)
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion='CREAR_SANCION',
+            descripcion=f"Sanción #{sancion.id} ({sancion.get_severidad_display()}) asignada a {sancion.estudiante.username}: {sancion.motivo}",
+            ip_address=self.request
+        )
 
     def perform_update(self, serializer):
         self._ensure_admin()
@@ -451,7 +457,15 @@ class SancionViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         self._ensure_admin()
+        sancion_id = instance.id
+        estudiante_username = instance.estudiante.username
         instance.delete()
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion='CREAR_SANCION',
+            descripcion=f"Sanción #{sancion_id} eliminada para {estudiante_username}",
+            ip_address=self.request
+        )
 
     @action(detail=True, methods=['patch'])
     def resolver(self, request, pk=None):
@@ -466,6 +480,12 @@ class SancionViewSet(viewsets.ModelViewSet):
             sancion.observaciones = observaciones
 
         sancion.save()
+        registrar_auditoria(
+            usuario=request.user,
+            accion='RESOLVER_SANCION',
+            descripcion=f"Sanción #{sancion.id} resuelta/retirada para {sancion.estudiante.username}",
+            ip_address=request
+        )
         return Response(self.get_serializer(sancion).data)
 
 
