@@ -490,9 +490,14 @@ class SancionViewSet(viewsets.ModelViewSet):
 
 
 class BitacoraViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = BitacoraAccion.objects.all()
     serializer_class = BitacoraAccionSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user and (user.is_staff or user.is_superuser):
+            return BitacoraAccion.objects.all().order_by('-fecha_hora', '-id')
+        raise PermissionDenied('Solo administradores pueden ver la bitácora de auditoría.')
 
 
 # ==========================================

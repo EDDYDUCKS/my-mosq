@@ -15,15 +15,18 @@ import { useAutoRefresh } from '@/lib/use-auto-refresh';
 export default function AdminAuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
 
   const reloadLogs = async () => {
     try {
+      setErrorMsg(null);
       const data = await fetchAuditLogs();
       setLogs(data);
-    } catch {
+    } catch (err: unknown) {
       setLogs([]);
+      setErrorMsg(err instanceof Error ? err.message : 'No se pudieron cargar los registros.');
     } finally {
       setLoading(false);
     }
@@ -134,6 +137,19 @@ export default function AdminAuditPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Error Alert */}
+          {errorMsg && (
+            <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 flex items-center justify-between text-sm text-red-700 dark:text-red-300">
+              <span>⚠️ {errorMsg}</span>
+              <button
+                onClick={reloadLogs}
+                className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
 
           {/* Tabla / Tarjetas de Auditoría */}
           {loading ? (
