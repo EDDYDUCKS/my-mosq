@@ -200,7 +200,14 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             if estudiante and estudiante.sancionado:
                 raise PermissionDenied(f'El estudiante {estudiante.first_name} tiene una sanción activa y no puede recibir préstamos.')
                 
-            serializer.save(**save_kwargs)
+            p_inst = serializer.save(**save_kwargs)
+            nombre_target = p_inst.solicitante_externo or (p_inst.estudiante.username if p_inst.estudiante else 'Estudiante')
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion='APROBAR_PRESTAMO',
+                descripcion=f"Préstamo Especial #{p_inst.id} creado directamente como {p_inst.estado} para '{nombre_target}'",
+                ip_address=self.request
+            )
             return
 
         estudiante = serializer.validated_data.get('estudiante')
@@ -262,7 +269,7 @@ class PrestamoViewSet(viewsets.ModelViewSet):
                 usuario=self.request.user,
                 accion='APROBAR_PRESTAMO',
                 descripcion=f"Préstamo #{p_inst.id} APROBADO/ENTREGADO a {p_inst.estudiante.username}",
-                ip_address=self.request.META.get('REMOTE_ADDR')
+                ip_address=self.request
             )
             enviar_notificacion_email(
                 destinatario_email=p_inst.estudiante.email,
@@ -274,11 +281,12 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             save_kwargs['recibido_por'] = self.request.user
             save_kwargs['fecha_recepcion'] = timezone.now()
             p_inst = serializer.instance
+            nombre_target = p_inst.solicitante_externo or p_inst.estudiante.username
             registrar_auditoria(
                 usuario=self.request.user,
                 accion='RECIBIR_PRESTAMO',
-                descripcion=f"Préstamo #{p_inst.id} RECIBIDO (Devuelto) de {p_inst.estudiante.username}",
-                ip_address=self.request.META.get('REMOTE_ADDR')
+                descripcion=f"Préstamo #{p_inst.id} RECIBIDO (Devuelto) de {nombre_target}",
+                ip_address=self.request
             )
             enviar_notificacion_email(
                 destinatario_email=p_inst.estudiante.email,
@@ -295,7 +303,7 @@ class PrestamoViewSet(viewsets.ModelViewSet):
                 usuario=self.request.user,
                 accion='RECHAZAR_PRESTAMO',
                 descripcion=f"Préstamo #{p_inst.id} RECHAZADO para {p_inst.estudiante.username}",
-                ip_address=self.request.META.get('REMOTE_ADDR')
+                ip_address=self.request
             )
             enviar_notificacion_email(
                 destinatario_email=p_inst.estudiante.email,
