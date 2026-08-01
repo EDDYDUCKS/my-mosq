@@ -490,6 +490,7 @@ class SancionViewSet(viewsets.ModelViewSet):
 
 
 class BitacoraViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = BitacoraAccion.objects.all()
     serializer_class = BitacoraAccionSerializer
     permission_classes = [IsAuthenticated]
 
