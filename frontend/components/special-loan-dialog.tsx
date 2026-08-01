@@ -106,11 +106,12 @@ export function SpecialLoanDialog({ open, onOpenChange, onSuccess }: SpecialLoan
     setError('');
 
     try {
+      const fechaDevolucionISO = dueDate ? `${dueDate}T23:59:00` : undefined;
       await createLoan({
         estudiante: Number(user.id), // Admin themselves
         estado: 'ACTIVO',
         solicitante_externo: solicitante.trim(),
-        fecha_devolucion: dueDate || undefined,
+        fecha_devolucion: fechaDevolucionISO,
         observaciones: notes.trim() || undefined,
         detalles: selectedItems.map(item => ({
           equipo: Number(item.id),

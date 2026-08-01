@@ -93,15 +93,20 @@ class Prestamo(models.Model):
             self.estudiante.refresh_from_db(fields=['sancionado'])
             if self.estudiante.sancionado:
                 raise ValidationError(f"¡Bloqueado! {self.estudiante.username} está sancionado.")
-            if not self.estudiante.carnet or not self.estudiante.carrera:
-                raise ValidationError("¡Perfil incompleto! Se requiere carnet y carrera.")
             
-            # Solo permitimos 1 ticket activo a la vez por estudiante
-            prestamos_activos = Prestamo.objects.filter(
-                estudiante=self.estudiante, estado='ACTIVO'
-            ).exclude(pk=self.pk)
-            if prestamos_activos.exists():
-                raise ValidationError(f"¡Bloqueado! {self.estudiante.username} ya tiene un carrito sin devolver.")
+            # Solo exigir carnet/carrera si NO es préstamo especial y el usuario es estudiante (@est.ulsa.edu.ni)
+            es_estudiante = (self.estudiante.email or '').lower().endswith('@est.ulsa.edu.ni')
+            if not self.solicitante_externo and es_estudiante:
+                if not self.estudiante.carnet or not self.estudiante.carrera:
+                    raise ValidationError("¡Perfil incompleto! Se requiere carnet y carrera.")
+            
+            # Solo limitar a 1 ticket activo a estudiantes en préstamos ordinarios (no préstamos especiales ni staff)
+            if not self.solicitante_externo and not self.estudiante.is_staff:
+                prestamos_activos = Prestamo.objects.filter(
+                    estudiante=self.estudiante, estado='ACTIVO'
+                ).exclude(pk=self.pk)
+                if prestamos_activos.exists():
+                    raise ValidationError(f"¡Bloqueado! {self.estudiante.username} ya tiene un carrito sin devolver.")
 
         # 2. Devolución automática al inventario cuando todo el ticket cambia a DEVUELTO
         if self.pk:
