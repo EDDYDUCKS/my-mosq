@@ -126,7 +126,9 @@ export default function AdminAuditPage() {
                   <option value="APROBAR_PRESTAMO">Préstamos Aprobados</option>
                   <option value="RECIBIR_PRESTAMO">Préstamos Recibidos</option>
                   <option value="RECHAZAR_PRESTAMO">Préstamos Rechazados</option>
+                  <option value="CREAR_EQUIPO">Equipos Creados</option>
                   <option value="EDITAR_EQUIPO">Equipos Editados / Mantenimiento</option>
+                  <option value="ELIMINAR_EQUIPO">Equipos Eliminados</option>
                   <option value="CREAR_SANCION">Sanciones Creadas</option>
                 </select>
               </div>

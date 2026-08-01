@@ -149,7 +149,7 @@ class EquipoViewSet(viewsets.ModelViewSet):
             usuario=self.request.user,
             accion='CREAR_EQUIPO',
             descripcion=f"Equipo '{equipo.nombre}' creado (Total: {equipo.cantidad_total}, Disponibles: {equipo.cantidad_disponible}, Mantenimiento: {equipo.cantidad_mantenimiento})",
-            ip_address=self.request.META.get('REMOTE_ADDR')
+            ip_address=self.request
         )
 
     def perform_update(self, serializer):
@@ -158,7 +158,7 @@ class EquipoViewSet(viewsets.ModelViewSet):
             usuario=self.request.user,
             accion='EDITAR_EQUIPO',
             descripcion=f"Equipo #{equipo.id} '{equipo.nombre}' actualizado (Total: {equipo.cantidad_total}, Disponibles: {equipo.cantidad_disponible}, Mantenimiento: {equipo.cantidad_mantenimiento})",
-            ip_address=self.request.META.get('REMOTE_ADDR')
+            ip_address=self.request
         )
 
     def perform_destroy(self, instance):
@@ -169,7 +169,7 @@ class EquipoViewSet(viewsets.ModelViewSet):
             usuario=self.request.user,
             accion='ELIMINAR_EQUIPO',
             descripcion=f"Equipo #{eq_id} '{nombre}' eliminado del inventario",
-            ip_address=self.request.META.get('REMOTE_ADDR')
+            ip_address=self.request
         )
 
 class PrestamoViewSet(viewsets.ModelViewSet):
