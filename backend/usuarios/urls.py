@@ -1,7 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from .inauguracion_reset import inauguracion_reset_view
 
 # 1. El enrutador automático para tu CRUD (Crear, Leer, Actualizar, Borrar)
 router = DefaultRouter()
@@ -20,9 +19,6 @@ urlpatterns = [
 
     # TEMPORAL: Limpiar imágenes rotas
     path('fix-images/', views.clear_broken_images_view, name='fix_images'),
-
-    # TEMPORAL PRE-INAUGURACIÓN: Reset total (borrar tras usar)
-    path('inauguracion-reset/', inauguracion_reset_view, name='inauguracion_reset'),
 
     # Incluimos todas las rutas automáticas (ej. /api/equipos/)
     path('', include(router.urls)),

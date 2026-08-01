@@ -72,7 +72,6 @@ class AllowedNetworkMiddleware:
         '/api/estudiantes/', # Solo accesible con token de admin
         '/api/reportes/',    # Solo accesible con token de admin
         '/api/bitacora/',    # Solo accesible con token de admin
-        '/api/inauguracion-reset/', # TEMPORAL: borrar tras usar
     )
 
     def __init__(self, get_response):
