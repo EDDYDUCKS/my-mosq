@@ -71,6 +71,7 @@ class AllowedNetworkMiddleware:
         '/api/sanciones/',   # Solo accesible con token válido
         '/api/estudiantes/', # Solo accesible con token de admin
         '/api/reportes/',    # Solo accesible con token de admin
+        '/api/bitacora/',    # Solo accesible con token de admin
     )
 
     def __init__(self, get_response):
