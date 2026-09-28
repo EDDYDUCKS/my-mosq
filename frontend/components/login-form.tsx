@@ -15,33 +15,56 @@ import { GoogleLogin } from '@react-oauth/google';
 
 export function LoginForm() {
   const router = useRouter();
-  const { login, loginWithGoogle, loading } = useAuth();
+  const { login, loginWithGoogle, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  // Despertar el servidor backend (Render) apenas cargue la página
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mosq3.onrender.com/api';
+    fetch(`${apiUrl}/equipos/`, { cache: 'no-store' }).catch(() => {});
+  }, []);
 
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!email.endsWith('@ulsa.edu.ni')) {
-      setError('Por favor usa tu correo institucional (@ulsa.edu.ni)');
-      return;
-    }
-
-    try {
-      const user = await login(email, password);
+  // Si ya hay usuario autenticado, redirigir
+  useEffect(() => {
+    if (user) {
       if (user.role === 'admin') {
         router.push('/admin');
       } else {
         router.push('/dashboard');
       }
-    } catch (err) {
-      setError('Email o contraseña incorrectos en el backend.');
+    }
+  }, [user, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const emailLower = email.trim().toLowerCase();
+    const dominiosValidos = ['@est.ulsa.edu.ni', '@ulsa.edu.ni', '@ac.ulsa.edu.ni'];
+    if (!dominiosValidos.some((d) => emailLower.endsWith(d))) {
+      setError('Por favor usa tu correo institucional (@est.ulsa.edu.ni, @ulsa.edu.ni o @ac.ulsa.edu.ni)');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const loggedUser = await login(emailLower, password);
+      if (loggedUser.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      if (emailLower.endsWith('@est.ulsa.edu.ni')) {
+        setError('Si eres estudiante, por favor inicia sesión pulsando "Continuar con Google" con tu cuenta @est.ulsa.edu.ni.');
+      } else {
+        setError('Email o contraseña incorrectos.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -52,20 +75,23 @@ export function LoginForm() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const responsePayload = await loginWithGoogle(credentialResponse.credential);
       if (responsePayload.requiere_completar_perfil) {
         router.push('/completar-perfil');
         return;
       }
-      
+
       if (responsePayload.user.role === 'admin') {
         router.push('/admin');
       } else {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'Error de Google o dominio inválido.');
+      setError(err.message || 'Error de Google o dominio no autorizado.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -100,6 +126,9 @@ export function LoginForm() {
           <Card className="border-border shadow-lg bg-background/95 backdrop-blur-sm md:bg-card md:backdrop-blur-0">
             <CardHeader>
               <CardTitle>Iniciar Sesión</CardTitle>
+              <CardDescription>
+                Accede al sistema de préstamos deportivos de ULSA
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -110,15 +139,39 @@ export function LoginForm() {
                   </Alert>
                 )}
 
+                {/* Botón Principal de Google para Estudiantes */}
+                <div className="space-y-2">
+                  <div className="flex justify-center w-full min-h-[44px]">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                      theme="outline"
+                      size="large"
+                      text="continue_with"
+                      shape="rectangular"
+                      width="350"
+                    />
+                  </div>
+                  <p className="text-center text-[11px] text-muted-foreground">
+                    💡 <strong>Estudiantes y Docentes:</strong> Inicien sesión con su correo Google de ULSA
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground my-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span>o con credenciales</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Correo Institucional</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="estudiante@ulsa.edu.ni"
+                    placeholder="ejemplo@est.ulsa.edu.ni"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
+                    disabled={isSubmitting}
                     className="bg-muted border-border"
                     required
                   />
@@ -132,7 +185,7 @@ export function LoginForm() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
+                    disabled={isSubmitting}
                     className="bg-muted border-border"
                     required
                   />
@@ -140,32 +193,12 @@ export function LoginForm() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={loading}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                  disabled={isSubmitting}
                 >
-                  {loading ? 'Iniciando...' : 'Iniciar Sesión'}
+                  {isSubmitting ? 'Iniciando sesión...' : 'Iniciar Sesión con Contraseña'}
                 </Button>
-
-                <div className="mt-3">
-                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mb-2">
-                    <span className="h-px flex-1 bg-border" />
-                    <span>o</span>
-                    <span className="h-px flex-1 bg-border" />
-                  </div>
-
-                  <div className="flex justify-center w-full">
-                    <GoogleLogin
-                      onSuccess={handleGoogleSuccess}
-                      onError={handleGoogleError}
-                      useOneTap
-                      theme="outline"
-                      size="large"
-                      text="continue_with"
-                    />
-                  </div>
-                </div>
               </form>
-
             </CardContent>
           </Card>
 

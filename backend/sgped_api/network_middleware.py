@@ -76,7 +76,7 @@ class AllowedNetworkMiddleware:
 
     def __init__(self, get_response):
         self.get_response = get_response
-        raw = os.getenv('ALLOWED_IPS', '208.96.129.55,127.0.0.1')
+        raw = os.getenv('ALLOWED_IPS', '*')
         self.allowed = [s.strip() for s in raw.split(',') if s.strip()]
         self.debug = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 

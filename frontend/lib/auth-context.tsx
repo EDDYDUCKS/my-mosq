@@ -64,7 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const currentUser = await fetchCurrentUser();
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Auth check timeout')), 7000)
+        );
+        const currentUser = await Promise.race([fetchCurrentUser(), timeoutPromise]);
         if (isMounted) {
           setUser(currentUser);
           // Redirect students with incomplete profiles
@@ -149,11 +152,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
-      <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout }}>
-        {children}
-      </AuthContext.Provider>
-    </GoogleOAuthProvider>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

@@ -221,39 +221,52 @@ async function apiRequest<T = unknown>(path: string, options: RequestOptions = {
     headers.Authorization = `Token ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? (isFormData ? body as BodyInit : JSON.stringify(body)) : undefined,
-    cache: 'no-store',
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-  if (!response.ok) {
-    let detail = 'No se pudo completar la solicitud.';
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? (isFormData ? body as BodyInit : JSON.stringify(body)) : undefined,
+      cache: 'no-store',
+      signal: controller.signal,
+    });
 
-    try {
-      const data = await response.json();
-      if (data?.detail) {
-        detail = String(data.detail);
-      } else {
-        detail = JSON.stringify(data);
+    if (!response.ok) {
+      let detail = 'No se pudo completar la solicitud.';
+
+      try {
+        const data = await response.json();
+        if (data?.detail) {
+          detail = String(data.detail);
+        } else {
+          detail = JSON.stringify(data);
+        }
+      } catch {
+        // Ignorar parse de error
       }
-    } catch {
-      // Ignorar parse de error
+
+      throw new Error(detail);
     }
 
-    throw new Error(detail);
-  }
+    if (responseType === 'blob') {
+      return (await response.blob()) as T;
+    }
 
-  if (responseType === 'blob') {
-    return (await response.blob()) as T;
-  }
+    if (response.status === 204) {
+      return undefined as T;
+    }
 
-  if (response.status === 204) {
-    return undefined as T;
+    return (await response.json()) as T;
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('El servidor está despertando o tardó demasiado en responder. Por favor intenta de nuevo en unos segundos.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return (await response.json()) as T;
 }
 
 function mapEquipment(item: BackendEquipo): Equipment {

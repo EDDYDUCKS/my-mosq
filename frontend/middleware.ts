@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // ── IPs/rangos permitidos ──────────────────────────────────────────────────
-const RAW = process.env.ALLOWED_IPS ?? '208.96.129.55';
+// Si no está definido o es '*', el acceso es abierto para estudiantes y personal
+const RAW = process.env.ALLOWED_IPS ?? '*';
 const ALLOWED = RAW.split(',').map(s => s.trim()).filter(Boolean);
 
 // ── Cookie de bypass (puerta secreta) ─────────────────────────────────────
@@ -9,7 +10,7 @@ const BYPASS_COOKIE = 'mosq_bypass';
 const BYPASS_TOKEN  = 'ulsa-dev-2025';
 
 // Rutas que NO necesitan verificación
-const PUBLIC_PATHS = ['/sin-acceso', '/login', '/_next', '/favicon', '/ESTRELLASALLE', '/manifest.json'];
+const PUBLIC_PATHS = ['/', '/sin-acceso', '/login', '/_next', '/favicon', '/ESTRELLASALLE', '/manifest.json'];
 
 function getClientIp(req: NextRequest): string {
   const forwarded = req.headers.get('x-forwarded-for');
@@ -20,8 +21,8 @@ function getClientIp(req: NextRequest): string {
 }
 
 function isAllowed(ip: string): boolean {
+  if (ALLOWED.includes('*') || ALLOWED.length === 0) return true;
   if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('::ffff:127.')) return true;
-  if (ALLOWED.includes('*')) return true;
   return ALLOWED.some(allowed =>
     allowed.endsWith('.') ? ip.startsWith(allowed) : ip === allowed
   );
@@ -31,7 +32,7 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Dejar pasar rutas públicas y assets
-  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
+  if (pathname === '/' || PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
