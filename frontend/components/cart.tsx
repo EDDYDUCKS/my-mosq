@@ -64,6 +64,11 @@ export const Cart: React.FC = () => {
       return;
     }
 
+    if (user.role !== 'admin' && user.requiere_completar_perfil) {
+      router.push('/completar-perfil');
+      return;
+    }
+
     if (!dueDate) {
       setError('Debes seleccionar una fecha de devolución.');
       return;
@@ -91,8 +96,17 @@ export const Cart: React.FC = () => {
       localStorage.setItem(PENDING_LOAN_KEY, String(id));
       clearCart();
       router.push(`/espera/${id}`);
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'No se pudo enviar la solicitud.');
+    } catch (submitError: any) {
+      const msg = submitError instanceof Error ? submitError.message : 'No se pudo enviar la solicitud.';
+      if (
+        msg.toLowerCase().includes('perfil') ||
+        msg.toLowerCase().includes('carrera') ||
+        msg.toLowerCase().includes('carnet')
+      ) {
+        router.push('/completar-perfil');
+        return;
+      }
+      setError(msg);
       setIsSubmitting(false);
     }
   };
@@ -188,6 +202,24 @@ export const Cart: React.FC = () => {
             </AlertDescription>
           </Alert>
 
+          {user?.role !== 'admin' && user?.requiere_completar_perfil && (
+            <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span>Tu perfil está incompleto (carnet y carrera requeridos).</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push('/completar-perfil')}
+                  className="bg-amber-600 text-white hover:bg-amber-700 border-none font-bold"
+                >
+                  Completar ahora
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex gap-2 pt-2">
             <Button
               type="button"
@@ -198,13 +230,23 @@ export const Cart: React.FC = () => {
             >
               Vaciar Carrito
             </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
-            </Button>
+            {user?.role !== 'admin' && user?.requiere_completar_perfil ? (
+              <Button
+                type="button"
+                onClick={() => router.push('/completar-perfil')}
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              >
+                Completar Perfil para Prestar
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
+              </Button>
+            )}
           </div>
         </form>
       </CardContent>

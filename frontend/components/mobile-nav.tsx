@@ -12,8 +12,10 @@ export function MobileNav() {
   const { user } = useAuth();
   const { cart } = useCart();
 
-  // No mostrar la barra si no hay usuario o si es admin
-  if (!user || user.role === 'admin') return null;
+  // No mostrar la barra si no hay usuario, si es admin, o si debe completar su perfil
+  if (!user || user.role === 'admin' || user.requiere_completar_perfil || pathname === '/completar-perfil') {
+    return null;
+  }
 
   // RUTAS DEL ESTUDIANTE (ajustar si las rutas cambian)
   const links = [

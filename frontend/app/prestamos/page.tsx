@@ -12,7 +12,7 @@ import { useAuth } from '@/lib/auth-context';
 import { fetchEquipment } from '@/lib/api-client';
 import { Equipment } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Home, FileText, ShoppingCart, Search, Clock } from 'lucide-react';
+import { Home, FileText, ShoppingCart, Search, Clock, User as UserIcon } from 'lucide-react';
 import { isWarehouseOpen } from '@/lib/schedule';
 
 function PrestamosPageContent() {
@@ -92,6 +92,7 @@ function PrestamosPageContent() {
     { label: 'Inicio', href: '/dashboard', icon: <Home className="w-4 h-4" /> },
     { label: 'Catálogo', href: '/prestamos', icon: <ShoppingCart className="w-4 h-4" /> },
     { label: 'Mis Préstamos', href: '/dashboard/loans', icon: <FileText className="w-4 h-4" /> },
+    { label: 'Mi Perfil', href: '/completar-perfil', icon: <UserIcon className="w-4 h-4" /> },
   ];
 
   return (

@@ -7,7 +7,7 @@ import { fetchStudentLoans } from '@/lib/api-client';
 import { LoanRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Home, FileCheck, ShoppingCart, RotateCcw, Clock, CalendarClock } from 'lucide-react';
+import { Home, FileCheck, ShoppingCart, RotateCcw, Clock, CalendarClock, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ReturnQrModal } from '@/components/return-qr-modal';
 import { useAutoRefresh } from '@/lib/use-auto-refresh';
@@ -114,6 +114,7 @@ export default function StudentLoansPage() {
     { label: 'Inicio',        href: '/dashboard',      icon: <Home className="w-4 h-4" /> },
     { label: 'Catálogo',      href: '/prestamos',       icon: <ShoppingCart className="w-4 h-4" /> },
     { label: 'Mis Préstamos', href: '/dashboard/loans', icon: <FileCheck className="w-4 h-4" /> },
+    { label: 'Mi Perfil',      href: '/completar-perfil', icon: <UserIcon className="w-4 h-4" /> },
   ];
 
   const STATUS_ORDER: Record<string, number> = {

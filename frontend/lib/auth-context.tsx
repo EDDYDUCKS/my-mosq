@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { User, AuthContextType } from './types';
 import { AUTH_TOKEN_KEY, fetchCurrentUser, loginWithApi, loginWithGoogleApi } from '@/lib/api-client';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -35,10 +35,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
 
   const performLogout = useCallback(() => {
     clearSession();
     setUser(null);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const currentUser = await fetchCurrentUser();
+      setUser(currentUser);
+      return currentUser;
+    } catch {
+      return null;
+    }
   }, []);
 
   useEffect(() => {
@@ -70,13 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const currentUser = await Promise.race([fetchCurrentUser(), timeoutPromise]);
         if (isMounted) {
           setUser(currentUser);
-          // Redirect students with incomplete profiles
-          if (currentUser.requiere_completar_perfil && typeof window !== 'undefined') {
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/completar-perfil') {
-              window.location.href = '/completar-perfil';
-            }
-          }
         }
       } catch {
         clearSession();
@@ -96,6 +101,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false;
     };
   }, []);
+
+  // ── GUARDIÁN ESTRICTO DE PERFIL ──────────────────────────────────────────
+  // Si el estudiante no ha completado carnet, carrera y año, NO puede salir
+  // de /completar-perfil bajo ninguna circunstancia (ni con botón atrás ni URL directa)
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return;
+    if (user.role === 'admin') return;
+
+    if (user.requiere_completar_perfil) {
+      if (pathname !== '/completar-perfil' && pathname !== '/sin-acceso') {
+        router.replace('/completar-perfil');
+      }
+    }
+  }, [user, loading, pathname, router]);
 
   // Periodic session check every 60 seconds (only for students)
   useEffect(() => {
@@ -152,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

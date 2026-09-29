@@ -91,14 +91,26 @@ class LoginAPIView(APIView):
         # Sincronizar flag de admin con la lista blanca
         _sync_admin_flag(user)
 
+        # Verificar si necesita completar perfil (solo estudiantes)
+        requiere_perfil = False
+        if not user.is_staff and not user.is_superuser:
+            if user.email and user.email.endswith('@est.ulsa.edu.ni'):
+                if not user.carnet or not user.carrera or not user.ano_cursado:
+                    requiere_perfil = True
+
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
             'token': token.key,
+            'requiere_completar_perfil': requiere_perfil,
             'user': {
                 'id': str(user.id),
                 'email': user.email,
                 'name': f"{user.first_name} {user.last_name}".strip() or user.username,
                 'role': 'admin' if (user.is_staff or user.is_superuser) else 'student',
+                'carnet': getattr(user, 'carnet', '') or '',
+                'carrera': getattr(user, 'carrera', '') or '',
+                'ano_cursado': getattr(user, 'ano_cursado', '') or '',
+                'requiere_completar_perfil': requiere_perfil,
             },
         })
 
@@ -121,6 +133,9 @@ class CurrentUserAPIView(APIView):
             'email': user.email,
             'name': f"{user.first_name} {user.last_name}".strip() or user.username,
             'role': 'admin' if (user.is_staff or user.is_superuser) else 'student',
+            'carnet': getattr(user, 'carnet', '') or '',
+            'carrera': getattr(user, 'carrera', '') or '',
+            'ano_cursado': getattr(user, 'ano_cursado', '') or '',
             'requiere_completar_perfil': requiere_perfil,
         })
 
@@ -957,6 +972,10 @@ class GoogleLoginView(APIView):
                     'email': user.email,
                     'name': f"{user.first_name} {user.last_name}".strip() or user.username,
                     'role': 'admin' if (user.is_staff or user.is_superuser) else 'student',
+                    'carnet': getattr(user, 'carnet', '') or '',
+                    'carrera': getattr(user, 'carrera', '') or '',
+                    'ano_cursado': getattr(user, 'ano_cursado', '') or '',
+                    'requiere_completar_perfil': requiere_perfil,
                 }
             })
 
@@ -972,27 +991,43 @@ class CompletarPerfilView(APIView):
 
     def post(self, request):
         user = request.user
-        carnet = request.data.get('carnet')
-        carrera = request.data.get('carrera')
-        ano_cursado = request.data.get('ano_cursado')
+        carnet = str(request.data.get('carnet', '')).strip()
+        carrera = str(request.data.get('carrera', '')).strip().upper()
+        ano_cursado = str(request.data.get('ano_cursado', '')).strip()
 
         if not carnet or not carrera or not ano_cursado:
             return Response({'detail': 'Carnet, carrera y año cursado son obligatorios.'}, status=400)
 
-        carnet_regex = r'^\d{2}-[a-zA-Z0-9\-]{5,}$'
-        if not re.match(carnet_regex, carnet):
-            return Response({'detail': 'El formato del carnet es inválido.'}, status=400)
+        # Validación flexible de carnet (soporta formatos ULSA: 24-0012, 2024-0012, 240012, 24-0012U, etc.)
+        if len(carnet) < 4 or len(carnet) > 25:
+            return Response({'detail': 'El número de carnet debe tener entre 4 y 25 caracteres.'}, status=400)
+
+        carreras_validas = [c[0] for c in Estudiante.CARRERAS_ULSA]
+        if carrera not in carreras_validas:
+            return Response({'detail': f'Carrera inválida. Opciones válidas: {", ".join(carreras_validas)}'}, status=400)
 
         valid_anos = ['1', '2', '3', '4', '5']
-        if str(ano_cursado) not in valid_anos:
+        if ano_cursado not in valid_anos:
             return Response({'detail': 'El año cursado debe ser entre 1 y 5.'}, status=400)
 
         user.carnet = carnet
         user.carrera = carrera
-        user.ano_cursado = str(ano_cursado)
+        user.ano_cursado = ano_cursado
         user.save(update_fields=['carnet', 'carrera', 'ano_cursado'])
 
-        return Response({'detail': 'Perfil actualizado correctamente.'})
+        return Response({
+            'detail': 'Perfil actualizado correctamente.',
+            'user': {
+                'id': str(user.id),
+                'email': user.email,
+                'name': f"{user.first_name} {user.last_name}".strip() or user.username,
+                'role': 'admin' if (user.is_staff or user.is_superuser) else 'student',
+                'carnet': user.carnet,
+                'carrera': user.carrera,
+                'ano_cursado': user.ano_cursado,
+                'requiere_completar_perfil': False,
+            }
+        })
 
 from django.http import JsonResponse
 def clear_broken_images_view(request):

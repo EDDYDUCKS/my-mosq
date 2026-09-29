@@ -5,6 +5,10 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  carnet?: string;
+  carrera?: string;
+  ano_cursado?: string;
+  requiere_completar_perfil?: boolean;
 }
 
 export interface AuthContextType {
@@ -12,6 +16,7 @@ export interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
   loginWithGoogle: (credential: string) => Promise<any>;
+  refreshUser: () => Promise<User | null>;
   logout: () => void;
 }
 
