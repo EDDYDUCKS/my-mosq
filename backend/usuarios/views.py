@@ -1097,10 +1097,10 @@ def clear_broken_images_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([IsAdminUser])
 def my_ip(request):
     """
-    Ruta pública para diagnosticar problemas de red.
+    Ruta para diagnóstico de red reservada para administradores del sistema.
     Devuelve la IP pública real que el servidor (Render) está detectando.
     """
     from sgped_api.network_middleware import _get_client_ip

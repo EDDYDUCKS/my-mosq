@@ -14,23 +14,28 @@ from django.http import JsonResponse
 
 
 def _get_client_ip(request):
-    """Obtiene la IP real del cliente, respetando proxies."""
+    """Obtiene la IP real del cliente, respetando proxies como Render."""
     forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
     if forwarded:
-        return forwarded.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', '')
+        parts = [p.strip() for p in forwarded.split(',') if p.strip()]
+        if parts:
+            return parts[0]
+    return (request.META.get('REMOTE_ADDR') or '').strip()
 
 
 import ipaddress
 
 def _is_allowed(ip_str: str, allowed: list[str], debug: bool) -> bool:
-    # Si la lista contiene '*', permitir todo (ideal para pruebas o demostraciones)
-    if '*' in allowed:
+    # Si la lista contiene '*' o está vacía, permitir todo
+    if not allowed or '*' in allowed:
         return True
         
     # En modo DEBUG, siempre permitir localhost
     if debug and ip_str in ('127.0.0.1', '::1', 'localhost'):
         return True
+
+    if not ip_str:
+        return False
         
     try:
         client_ip = ipaddress.ip_address(ip_str)
@@ -54,10 +59,7 @@ def _is_allowed(ip_str: str, allowed: list[str], debug: bool) -> bool:
 class AllowedNetworkMiddleware:
     """Rechaza peticiones API que no vengan de la red autorizada."""
 
-    # Rutas que se excluyen de la restricción (login, admin Django, etc.)
-    # NOTA: Las rutas de admin (/api/prestamos/, /api/sanciones/) quedan exentas
-    # porque los administradores necesitan acceder desde cualquier lugar.
-    # La seguridad real está en la autenticación por token (IsAuthenticated/IsAdminUser).
+    # Rutas que se excluyen de la restricción (login, admin Django, health checks, etc.)
     EXEMPT_PREFIXES = (
         '/admin/',
         '/api/auth/',
@@ -65,25 +67,35 @@ class AllowedNetworkMiddleware:
         '/api/google-login/',
         '/api/fix-images/',
         '/media/',
+        '/static/',
+        '/favicon.ico',
+        '/health/',
         '/api/equipos/',
         '/api/my-ip/',
-        '/api/prestamos/',   # Protegido por token JWT — admin ve todo, estudiante solo lo suyo
-        '/api/sanciones/',   # Solo accesible con token válido
-        '/api/estudiantes/', # Solo accesible con token de admin
-        '/api/reportes/',    # Solo accesible con token de admin
-        '/api/bitacora/',    # Solo accesible con token de admin
+        '/api/prestamos/',
+        '/api/sanciones/',
+        '/api/estudiantes/',
+        '/api/reportes/',
+        '/api/bitacora/',
     )
 
     def __init__(self, get_response):
         self.get_response = get_response
-        raw = os.getenv('ALLOWED_IPS', '*')
-        self.allowed = [s.strip() for s in raw.split(',') if s.strip()]
+        raw = os.getenv('ALLOWED_IPS', '*').strip()
+        if not raw or raw == '*':
+            self.allowed = ['*']
+        else:
+            self.allowed = [s.strip() for s in raw.split(',') if s.strip()]
         self.debug = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
     def __call__(self, request):
+        # Fast-path: si ALLOWED_IPS es wildcard, no procesar verificaciones de red
+        if '*' in self.allowed:
+            return self.get_response(request)
+
         path = request.path_info
 
-        # Rutas exentas (para no bloquear el propio login)
+        # Rutas exentas
         if any(path.startswith(p) for p in self.EXEMPT_PREFIXES):
             return self.get_response(request)
 
