@@ -79,6 +79,7 @@ class Prestamo(models.Model):
     fecha_devolucion = models.DateTimeField(null=True, blank=True)
     fecha_recepcion = models.DateTimeField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS_PRESTAMO, default='PENDIENTE')
+    motivo_rechazo = models.TextField(blank=True, null=True, help_text='Motivo por el cual la solicitud fue rechazada')
     solicitante_externo = models.CharField(max_length=150, null=True, blank=True, help_text='Nombre del solicitante externo (entrenador, etc.)')
     observaciones = models.TextField(blank=True, null=True, help_text='Notas adicionales sobre el préstamo')
 

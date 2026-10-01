@@ -262,9 +262,17 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         if not (self.request.user.is_staff or self.request.user.is_superuser):
             if (serializer.instance.estudiante == self.request.user
                     and estado_actual == 'PENDIENTE'
-                    and nuevo_estado == 'RECHAZADO'):
-                serializer.instance.estado = 'RECHAZADO'
-                serializer.instance.save(update_fields=['estado'])
+                    and nuevo_estado in ('RECHAZADO', 'CANCELADO')):
+                motivo = (self.request.data.get('motivo_rechazo') or '').strip() or 'Cancelado por el propio estudiante'
+                serializer.instance.estado = 'CANCELADO'
+                serializer.instance.motivo_rechazo = motivo
+                serializer.instance.save(update_fields=['estado', 'motivo_rechazo'])
+                registrar_auditoria(
+                    usuario=self.request.user,
+                    accion='RECHAZAR_PRESTAMO',
+                    descripcion=f"Préstamo #{serializer.instance.id} CANCELADO por {self.request.user.username}",
+                    ip_address=self.request
+                )
                 return
             raise PermissionDenied('Solo administradores pueden actualizar préstamos.')
 
@@ -314,16 +322,20 @@ class PrestamoViewSet(viewsets.ModelViewSet):
 
         if nuevo_estado == 'RECHAZADO' and estado_actual != 'RECHAZADO':
             p_inst = serializer.instance
+            motivo = (self.request.data.get('motivo_rechazo') or '').strip()
+            if not motivo:
+                motivo = 'Rechazado por administración sin motivo especificado'
+            save_kwargs['motivo_rechazo'] = motivo
             registrar_auditoria(
                 usuario=self.request.user,
                 accion='RECHAZAR_PRESTAMO',
-                descripcion=f"Préstamo #{p_inst.id} RECHAZADO para {p_inst.estudiante.username}",
+                descripcion=f"Préstamo #{p_inst.id} RECHAZADO para {p_inst.estudiante.username}. Motivo: {motivo}",
                 ip_address=self.request
             )
             enviar_notificacion_email(
                 destinatario_email=p_inst.estudiante.email,
                 asunto=f"Solicitud de Préstamo Rechazada #{p_inst.id} - ULSA",
-                mensaje_texto=f"Hola {p_inst.estudiante.first_name}, tu solicitud de préstamo #{p_inst.id} ha sido rechazada."
+                mensaje_texto=f"Hola {p_inst.estudiante.first_name}, tu solicitud de préstamo #{p_inst.id} ha sido rechazada.\nMotivo: {motivo}"
             )
 
         serializer.save(**save_kwargs)
@@ -393,8 +405,10 @@ class PrestamoViewSet(viewsets.ModelViewSet):
                 status=400
             )
         
+        motivo = (request.data.get('motivo_rechazo') or request.data.get('motivo') or '').strip() or 'Cancelado por el propio estudiante'
         prestamo.estado = 'CANCELADO'
-        prestamo.save(update_fields=['estado'])
+        prestamo.motivo_rechazo = motivo
+        prestamo.save(update_fields=['estado', 'motivo_rechazo'])
 
         registrar_auditoria(
             usuario=request.user,

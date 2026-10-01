@@ -70,6 +70,7 @@ class PrestamoSerializer(serializers.ModelSerializer):
             'fecha_devolucion',
             'fecha_recepcion',
             'estado',
+            'motivo_rechazo',
             'solicitante_externo',
             'observaciones',
             'detalles',
