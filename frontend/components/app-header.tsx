@@ -44,7 +44,7 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#0f2537]/90 backdrop-blur-md text-white border-b border-white/10 shadow-sm transition-all">
+      <header className="sticky top-0 z-50 bg-[#123824]/95 backdrop-blur-md text-white border-b border-white/10 shadow-sm transition-all">
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Botón menú móvil para administradores */}
@@ -92,7 +92,7 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
               >
                 <ShoppingCart className="w-4 h-4" />
                 {cart.length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0f2537]">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#123824]">
                     {cart.length > 9 ? '9+' : cart.length}
                   </span>
                 )}

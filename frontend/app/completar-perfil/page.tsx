@@ -32,9 +32,11 @@ export default function CompletarPerfilPage() {
       // Si es admin, redirigir a su panel
       if (user.role === 'admin') {
         router.replace('/admin');
+      } else if (!user.requiere_completar_perfil) {
+        router.replace('/perfil');
       }
     }
-  }, [user]);
+  }, [user, router]);
 
   const CARRERAS = [
     { value: 'LAF', label: 'Licenciatura Administrativa con Énfasis en Finanzas (LAF)' },

@@ -136,7 +136,7 @@ function PrestamosPageContent() {
     { label: 'Inicio', href: '/dashboard', icon: <Home className="w-4 h-4" /> },
     { label: 'Catálogo', href: '/prestamos', icon: <ShoppingCart className="w-4 h-4" /> },
     { label: 'Mis Préstamos', href: '/dashboard/loans', icon: <FileText className="w-4 h-4" /> },
-    { label: 'Mi Perfil', href: '/completar-perfil', icon: <UserIcon className="w-4 h-4" /> },
+    { label: 'Mi Perfil', href: '/perfil', icon: <UserIcon className="w-4 h-4" /> },
   ];
 
   return (
