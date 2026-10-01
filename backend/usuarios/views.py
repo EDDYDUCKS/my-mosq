@@ -92,6 +92,10 @@ class LoginAPIView(APIView):
         # Sincronizar flag de admin con la lista blanca
         _sync_admin_flag(user)
 
+        # Actualizar estado de sanciones
+        if hasattr(user, 'actualizar_estado_sancion'):
+            user.actualizar_estado_sancion()
+
         # Verificar si necesita completar perfil (solo estudiantes)
         requiere_perfil = False
         if not user.is_staff and not user.is_superuser:
@@ -111,6 +115,7 @@ class LoginAPIView(APIView):
                 'carnet': getattr(user, 'carnet', '') or '',
                 'carrera': getattr(user, 'carrera', '') or '',
                 'ano_cursado': getattr(user, 'ano_cursado', '') or '',
+                'sancionado': getattr(user, 'sancionado', False),
                 'requiere_completar_perfil': requiere_perfil,
             },
         })
@@ -122,6 +127,10 @@ class CurrentUserAPIView(APIView):
     def get(self, request):
         user = request.user
         
+        # Actualizar estado de sanciones
+        if hasattr(user, 'actualizar_estado_sancion'):
+            user.actualizar_estado_sancion()
+
         # Check if student needs to complete profile
         requiere_perfil = False
         if not user.is_staff and not user.is_superuser:
@@ -137,6 +146,7 @@ class CurrentUserAPIView(APIView):
             'carnet': getattr(user, 'carnet', '') or '',
             'carrera': getattr(user, 'carrera', '') or '',
             'ano_cursado': getattr(user, 'ano_cursado', '') or '',
+            'sancionado': getattr(user, 'sancionado', False),
             'requiere_completar_perfil': requiere_perfil,
         })
 
@@ -213,8 +223,12 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             
             # Check sanction if assigning to a student
             estudiante = serializer.validated_data.get('estudiante')
-            if estudiante and estudiante.sancionado:
-                raise PermissionDenied(f'El estudiante {estudiante.first_name} tiene una sanción activa y no puede recibir préstamos.')
+            if estudiante:
+                if hasattr(estudiante, 'actualizar_estado_sancion'):
+                    estudiante.actualizar_estado_sancion()
+                    estudiante.refresh_from_db(fields=['sancionado'])
+                if estudiante.sancionado:
+                    raise PermissionDenied(f'El estudiante {estudiante.first_name} tiene una sanción activa y no puede recibir préstamos.')
                 
             p_inst = serializer.save(**save_kwargs)
             nombre_target = p_inst.solicitante_externo or (p_inst.estudiante.username if p_inst.estudiante else 'Estudiante')
@@ -229,6 +243,10 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         estudiante = serializer.validated_data.get('estudiante')
         if not estudiante or estudiante.id != self.request.user.id:
             raise PermissionDenied('Solo puedes crear préstamos para tu propio usuario.')
+
+        if hasattr(self.request.user, 'actualizar_estado_sancion'):
+            self.request.user.actualizar_estado_sancion()
+            self.request.user.refresh_from_db(fields=['sancionado'])
 
         if self.request.user.sancionado:
             raise PermissionDenied('No puedes solicitar préstamos porque tienes una sanción activa.')
@@ -983,6 +1001,10 @@ class GoogleLoginView(APIView):
             # Sincronizar flag de admin con la lista blanca
             _sync_admin_flag(user)
 
+            # Actualizar estado de sanciones
+            if hasattr(user, 'actualizar_estado_sancion'):
+                user.actualizar_estado_sancion()
+
             # Generar token DRF
             token, _ = Token.objects.get_or_create(user=user)
 
@@ -1004,6 +1026,7 @@ class GoogleLoginView(APIView):
                     'carnet': getattr(user, 'carnet', '') or '',
                     'carrera': getattr(user, 'carrera', '') or '',
                     'ano_cursado': getattr(user, 'ano_cursado', '') or '',
+                    'sancionado': getattr(user, 'sancionado', False),
                     'requiere_completar_perfil': requiere_perfil,
                 }
             })

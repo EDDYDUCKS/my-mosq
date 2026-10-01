@@ -24,6 +24,11 @@ class Estudiante(AbstractUser):
 
     def actualizar_estado_sancion(self):
         hoy = timezone.localdate()
+        # Desactivar automáticamente sanciones expiradas cuya fecha_fin < hoy
+        sanciones_vencidas = self.sanciones.filter(activa=True, fecha_fin__lt=hoy)
+        if sanciones_vencidas.exists():
+            sanciones_vencidas.update(activa=False, fecha_resolucion=timezone.now())
+
         tiene_sancion_vigente = self.sanciones.filter(activa=True).filter(
             models.Q(fecha_fin__isnull=True) | models.Q(fecha_fin__gte=hoy)
         ).exists()
@@ -31,6 +36,7 @@ class Estudiante(AbstractUser):
         if self.sancionado != tiene_sancion_vigente:
             self.sancionado = tiene_sancion_vigente
             self.save(update_fields=['sancionado'])
+        return self.sancionado
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.username})"
