@@ -1,4 +1,5 @@
-import { Equipment, LoanRequest, Sanction, User } from '@/lib/types';
+import { Equipment, LoanRequest, Sanction, User, DashboardStats } from '@/lib/types';
+
 
 export const AUTH_TOKEN_KEY = 'gear_auth_token';
 
@@ -61,8 +62,13 @@ interface BackendPrestamo {
   motivo_rechazo?: string | null;
   solicitante_externo?: string | null;
   observaciones?: string | null;
+  qr_token?: string;
+  estado_devolucion?: 'BUENO' | 'DESGASTE' | 'DANADO';
+  observaciones_devolucion?: string | null;
+  foto_devolucion?: string | null;
   detalles: BackendDetallePrestamo[];
 }
+
 
 interface BackendLoginResponse {
   token: string;
@@ -338,9 +344,14 @@ function mapLoans(prestamos: BackendPrestamo[]): LoanRequest[] {
       backendStatus: prestamo.estado,
       deliveredByName,
       receivedByName,
+      qr_token: prestamo.qr_token || undefined,
+      estado_devolucion: prestamo.estado_devolucion || undefined,
+      observaciones_devolucion: prestamo.observaciones_devolucion || undefined,
+      foto_devolucion: prestamo.foto_devolucion || undefined,
     }));
   });
 }
+
 
 function mapSanction(sancion: BackendSancion): Sanction {
   const studentName = `${sancion.estudiante_detalle?.first_name || ''} ${sancion.estudiante_detalle?.last_name || ''}`.trim()
@@ -515,14 +526,47 @@ export async function updateLoanStatus(
   });
 }
 
-export async function markLoanAsReturned(loanGroupId: string): Promise<void> {
+export async function markLoanAsReturned(
+  loanGroupId: string,
+  extra?: {
+    estado_devolucion?: 'BUENO' | 'DESGASTE' | 'DANADO';
+    observaciones_devolucion?: string;
+  }
+): Promise<void> {
+  const body: Record<string, any> = {
+    estado: 'DEVUELTO',
+  };
+  if (extra?.estado_devolucion) {
+    body.estado_devolucion = extra.estado_devolucion;
+  }
+  if (extra?.observaciones_devolucion) {
+    body.observaciones_devolucion = extra.observaciones_devolucion;
+  }
   await apiRequest(`/prestamos/${loanGroupId}/`, {
     method: 'PATCH',
-    body: {
-      estado: 'DEVUELTO',
-    },
+    body,
   });
 }
+
+export async function validateQrToken(qrData: string): Promise<{
+  valid: boolean;
+  loan_id: number;
+  prestamo: BackendPrestamo;
+}> {
+  return await apiRequest<{
+    valid: boolean;
+    loan_id: number;
+    prestamo: BackendPrestamo;
+  }>('/prestamos/validar-qr/', {
+    method: 'POST',
+    body: { qr_data: qrData },
+  });
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  return await apiRequest<DashboardStats>('/reportes/estadisticas/');
+}
+
 
 export async function cancelLoan(loanId: string): Promise<void> {
   try {

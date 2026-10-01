@@ -82,11 +82,14 @@ export default function AdminLoansPage() {
   const [rejectReason, setRejectReason]     = useState('');
   const [rejecting, setRejecting]           = useState(false);
 
-  // Estados para la devolución con sanción
+  // Estados para la devolución con sanción y condición física
   const [returnTarget, setReturnTarget] = useState<{ groupId: string, studentId?: string } | null>(null);
   const [applySanction, setApplySanction] = useState(false);
   const [sanctionReason, setSanctionReason] = useState('');
   const [sanctionSeverity, setSanctionSeverity] = useState<'warning' | 'restriction' | 'ban'>('warning');
+  const [returnPhysicalCondition, setReturnPhysicalCondition] = useState<'BUENO' | 'DESGASTE' | 'DANADO'>('BUENO');
+  const [returnNotes, setReturnNotes] = useState('');
+
 
   // Estados de filtro por estado y búsqueda
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'overdue' | 'returned' | 'rejected'>('all');
@@ -155,6 +158,8 @@ export default function AdminLoansPage() {
     setApplySanction(false);
     setSanctionReason('');
     setSanctionSeverity('warning');
+    setReturnPhysicalCondition('BUENO');
+    setReturnNotes('');
     setScannerOpen(false); // Por si viene del escáner
   };
 
@@ -162,7 +167,10 @@ export default function AdminLoansPage() {
     if (!returnTarget) return;
     setWorkingGroupId(returnTarget.groupId);
     try {
-      await markLoanAsReturned(returnTarget.groupId);
+      await markLoanAsReturned(returnTarget.groupId, {
+        estado_devolucion: returnPhysicalCondition,
+        observaciones_devolucion: returnNotes.trim() || undefined,
+      });
       
       if (applySanction && sanctionReason && returnTarget.studentId) {
         await createSanction({
@@ -172,7 +180,10 @@ export default function AdminLoansPage() {
         });
         addNotification('Devolución y Sanción', 'Equipo recibido y estudiante sancionado.', 'warning');
       } else {
-        addNotification('Devolución registrada', 'El equipo fue recibido de vuelta.', 'success');
+        const msg = returnPhysicalCondition === 'DANADO'
+          ? 'Equipo recibido con reporte de daño (trasladado a mantenimiento).'
+          : 'El equipo fue recibido de vuelta.';
+        addNotification('Devolución registrada', msg, 'success');
       }
       
       await reload();
@@ -181,6 +192,7 @@ export default function AdminLoansPage() {
       setWorkingGroupId(null); 
     }
   };
+
 
   const statusColor = (status: LoanRequest['status']) => {
     switch (status) {
@@ -619,6 +631,42 @@ export default function AdminLoansPage() {
           </DialogHeader>
           
           <div className="space-y-4 py-4 border-t border-border mt-2">
+            {/* Estado físico del equipo al devolver */}
+            <div className="space-y-2">
+              <Label htmlFor="physical-condition">Estado del Equipo al Recibir</Label>
+              <select
+                id="physical-condition"
+                value={returnPhysicalCondition}
+                onChange={(e) => {
+                  const val = e.target.value as 'BUENO' | 'DESGASTE' | 'DANADO';
+                  setReturnPhysicalCondition(val);
+                  if (val === 'DANADO' && !applySanction) {
+                    setApplySanction(true);
+                    setSanctionReason('Equipo devuelto con daños o averías.');
+                  }
+                }}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+              >
+                <option value="BUENO">Buen Estado (Vuelve a disponibilidad)</option>
+                <option value="DESGASTE">Desgaste Normal (Vuelve a disponibilidad)</option>
+                <option value="DANADO">Dañado / Averiado (Pasa a mantenimiento)</option>
+              </select>
+            </div>
+
+            {returnPhysicalCondition === 'DANADO' && (
+              <div className="space-y-2">
+                <Label htmlFor="return-notes">Observaciones del Daño</Label>
+                <Textarea
+                  id="return-notes"
+                  placeholder="Detalla qué daño o desperfecto presenta el equipo..."
+                  value={returnNotes}
+                  onChange={(e) => setReturnNotes(e.target.value)}
+                  className="border-input resize-none"
+                  rows={2}
+                />
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="apply-sanction" className="text-base font-semibold">Aplicar Sanción</Label>
@@ -630,6 +678,7 @@ export default function AdminLoansPage() {
                 onCheckedChange={setApplySanction}
               />
             </div>
+
 
             {applySanction && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">

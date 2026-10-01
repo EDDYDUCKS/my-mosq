@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { updateLoanStatus, markLoanAsReturned } from '@/lib/api-client';
+import { updateLoanStatus, markLoanAsReturned, validateQrToken } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Camera, CameraOff, CheckCircle2, XCircle, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
 
@@ -48,18 +48,29 @@ export function QrScanner({ onReturnScanned }: QrScannerProps = {}) {
           // Sólo procesar una vez
           if (processing) return;
 
+          let loanId: string | null = null;
           const match = decodedText.match(/^MOSQ-LOAN-(\d+)$/);
-          if (!match) {
-            // QR no es de MOSQ, ignorar
+          if (match) {
+            loanId = match[1];
+          } else if (!decodedText.includes('MOSQ-QR') && !decodedText.includes(':')) {
+            // QR no parece ser de MOSQ
             return;
           }
 
-          const loanId = match[1];
           setProc(true);
           await stopCamera();
           setActive(false);
 
           try {
+            if (!loanId) {
+              const res = await validateQrToken(decodedText);
+              if (res.valid && res.loan_id) {
+                loanId = String(res.loan_id);
+              } else {
+                throw new Error('Código QR no válido o expirado.');
+              }
+            }
+
             if (mode === 'approve') {
               await updateLoanStatus(loanId, 'ACTIVO');
               setResult({ status: 'success', message: `✅ Préstamo #${loanId} aprobado. Equipo entregado.` });

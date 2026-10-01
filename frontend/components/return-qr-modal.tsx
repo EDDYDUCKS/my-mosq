@@ -18,8 +18,9 @@ interface ReturnQrModalProps {
 type ModalState = 'showing' | 'returned';
 
 export function ReturnQrModal({ loanId, equipmentNames, onClose }: ReturnQrModalProps) {
-  const [state, setState]   = useState<ModalState>('showing');
-  const intervalRef         = useRef<NodeJS.Timeout | null>(null);
+  const [state, setState]       = useState<ModalState>('showing');
+  const [qrToken, setQrToken]   = useState<string>('');
+  const intervalRef             = useRef<NodeJS.Timeout | null>(null);
 
   // Polling para detectar cuando el admin marca como devuelto
   useEffect(() => {
@@ -34,13 +35,18 @@ export function ReturnQrModal({ loanId, equipmentNames, onClose }: ReturnQrModal
       try {
         const loans = await fetchLoanById(loanId);
         if (!loans.length) return;
-        const bs = (loans[0] as { backendStatus?: string }).backendStatus;
+        const loan = loans[0];
+        if (loan.qr_token) {
+          setQrToken(loan.qr_token);
+        }
+        const bs = (loan as { backendStatus?: string }).backendStatus;
         if (bs === 'DEVUELTO') {
           if (intervalRef.current) clearInterval(intervalRef.current);
           setState('returned');
         }
       } catch { /* silencioso */ }
     };
+
 
     check();
     intervalRef.current = setInterval(check, 5000);
@@ -110,7 +116,7 @@ export function ReturnQrModal({ loanId, equipmentNames, onClose }: ReturnQrModal
           <div className="flex justify-center">
             <div className="bg-white p-5 rounded-2xl shadow-lg border border-border">
               <QRCode
-                value={`MOSQ-LOAN-${loanId}`}
+                value={qrToken || `MOSQ-LOAN-${loanId}`}
                 size={200}
                 bgColor="#ffffff"
                 fgColor="#166534"
@@ -118,6 +124,7 @@ export function ReturnQrModal({ loanId, equipmentNames, onClose }: ReturnQrModal
             </div>
           </div>
         )}
+
 
         <p className="text-xs text-muted-foreground">Ticket #{loanId}</p>
 

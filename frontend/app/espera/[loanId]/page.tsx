@@ -16,9 +16,11 @@ function EsperaContent() {
   const router = useRouter();
   const [screen, setScreen]             = useState<ScreenState>('waiting');
   const [rejectionReason, setRejection] = useState<string>('');
+  const [qrToken, setQrToken]           = useState<string>('');
   const [cancelling, setCancelling]     = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const trapActiveRef = useRef(true);
+
 
   // Guardar en localStorage para persistencia
   useEffect(() => {
@@ -52,6 +54,9 @@ function EsperaContent() {
       const loans = await fetchLoanById(loanId);
       if (!loans.length) return;
       const loan = loans[0];
+      if (loan.qr_token) {
+        setQrToken(loan.qr_token);
+      }
       const bs   = (loan as { backendStatus?: string }).backendStatus;
 
       if (bs === 'ACTIVO') {
@@ -62,8 +67,9 @@ function EsperaContent() {
       } else if (bs === 'RECHAZADO') {
         localStorage.removeItem(PENDING_LOAN_KEY);
         trapActiveRef.current = false;
-        // Intentar mostrar el motivo desde 'notes' u observaciones
-        const maybeNotes = (loan as { notes?: string; observations?: string }).notes
+        // Mostrar el motivo de rechazo si está disponible
+        const maybeNotes = loan.motivo_rechazo
+          || (loan as { notes?: string; observations?: string }).notes
           || (loan as { observations?: string }).observations
           || '';
         setRejection(maybeNotes);
@@ -73,6 +79,7 @@ function EsperaContent() {
     } catch {
       // silencioso: seguir intentando
     }
+
   }, [loanId]);
 
   useEffect(() => {
@@ -163,9 +170,10 @@ function EsperaContent() {
       {/* QR */}
       <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-2xl border border-border mb-4 sm:mb-6">
         <QRCode
-          value={`MOSQ-LOAN-${loanId}`}
+          value={qrToken || `MOSQ-LOAN-${loanId}`}
           size={180}
           bgColor="#ffffff"
+
           fgColor="#166534"
         />
       </div>

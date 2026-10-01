@@ -55,6 +55,20 @@ export interface LoanRequest {
   notes?: string;
   motivo_rechazo?: string;
   solicitante_externo?: string | null;
+  qr_token?: string;
+  estado_devolucion?: 'BUENO' | 'DESGASTE' | 'DANADO';
+  observaciones_devolucion?: string;
+  foto_devolucion?: string;
+}
+
+export interface DashboardStats {
+  top_equipos: Array<{ id: number; nombre: string; total: number }>;
+  atrasos_por_carrera: Array<{ carrera: string; total: number }>;
+  prestamos_por_mes: Array<{ mes: string; total: number }>;
+  distribucion_estados: Record<string, number>;
+  total_prestamos: number;
+  total_equipos: number;
+  total_estudiantes: number;
 }
 
 export interface Sanction {
@@ -69,3 +83,4 @@ export interface Sanction {
   isActive?: boolean;
   resolvedAt?: Date;
 }
+
