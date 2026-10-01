@@ -57,7 +57,7 @@ interface BackendPrestamo {
   fecha_prestamo: string;
   fecha_devolucion: string | null;
   fecha_recepcion: string | null;
-  estado: 'PENDIENTE' | 'ACTIVO' | 'DEVUELTO' | 'RECHAZADO' | 'ATRASADO';
+  estado: 'PENDIENTE' | 'ACTIVO' | 'DEVUELTO' | 'RECHAZADO' | 'CANCELADO' | 'ATRASADO' | 'PERDIDO';
   motivo_rechazo?: string | null;
   solicitante_externo?: string | null;
   observaciones?: string | null;
@@ -460,7 +460,7 @@ export async function declareLoanLost(groupId: string, reason?: string): Promise
     method: 'POST',
     body: JSON.stringify({ motivo: reason }),
   });
-  return mapLoanRequest(data);
+  return mapLoans([data])[0];
 }
 
 export async function deleteEquipment(equipmentId: string): Promise<void> {

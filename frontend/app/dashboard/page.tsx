@@ -39,7 +39,7 @@ export default function StudentHome() {
   const [loading, setLoading]     = useState(true);
   const [returnModal, setReturnModal] = useState<{ id: string; items: string[] } | null>(null);
 
-  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Estudiante';
+  const firstName = user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Estudiante';
 
   // ── GUARDÁN DE PERSISTENCIA: si el estudiante tiene un préstamo pendiente, lo mandamos de regreso ──
   useEffect(() => {

@@ -31,7 +31,7 @@ export interface Equipment {
   total: number;
   maintenance?: number;
   imageUrl?: string;
-  condition: 'good' | 'fair' | 'poor' | 'maintenance';
+  condition: 'excellent' | 'good' | 'fair' | 'poor' | 'maintenance';
 }
 
 export interface LoanRequest {
