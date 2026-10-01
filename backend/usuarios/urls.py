@@ -13,6 +13,7 @@ router.register(r'bitacora', views.BitacoraViewSet)
 # 2. Las URLs finales que exponemos al mundo
 urlpatterns = [
     path('auth/login/', views.LoginAPIView.as_view(), name='auth_login'),
+    path('auth/logout/', views.LogoutAPIView.as_view(), name='auth_logout'),
     path('auth/google/', views.GoogleLoginView.as_view(), name='auth_google'),
     path('auth/completar-perfil/', views.CompletarPerfilView.as_view(), name='auth_completar_perfil'),
     path('auth/me/', views.CurrentUserAPIView.as_view(), name='auth_me'),

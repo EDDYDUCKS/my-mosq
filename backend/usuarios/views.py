@@ -103,7 +103,9 @@ class LoginAPIView(APIView):
                 if not user.carnet or not user.carrera or not user.ano_cursado:
                     requiere_perfil = True
 
-        token, _ = Token.objects.get_or_create(user=user)
+        # Rotación de token en inicio de sesión (garantiza token fresco y renueva el TTL)
+        Token.objects.filter(user=user).delete()
+        token = Token.objects.create(user=user)
         return Response({
             'token': token.key,
             'requiere_completar_perfil': requiere_perfil,
@@ -119,6 +121,17 @@ class LoginAPIView(APIView):
                 'requiere_completar_perfil': requiere_perfil,
             },
         })
+
+
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if hasattr(request, 'auth') and request.auth:
+            request.auth.delete()
+        else:
+            Token.objects.filter(user=request.user).delete()
+        return Response({'detail': 'Sesión cerrada exitosamente.'})
 
 
 class CurrentUserAPIView(APIView):
@@ -985,8 +998,9 @@ class GoogleLoginView(APIView):
             if hasattr(user, 'actualizar_estado_sancion'):
                 user.actualizar_estado_sancion()
 
-            # Generar token DRF
-            token, _ = Token.objects.get_or_create(user=user)
+            # Rotación de token en inicio de sesión (garantiza token fresco y renueva el TTL)
+            Token.objects.filter(user=user).delete()
+            token = Token.objects.create(user=user)
 
             # Verificar si necesita completar perfil (solo estudiantes)
             requiere_perfil = False
