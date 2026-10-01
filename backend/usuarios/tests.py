@@ -258,3 +258,67 @@ class SeguridadFase3Tests(APITestCase):
 		r_admin = self.client.get(reverse('my_ip'), HTTP_AUTHORIZATION=f'Token {token_admin.key}')
 		self.assertEqual(r_admin.status_code, status.HTTP_200_OK)
 		self.assertIn('ip_detectada', r_admin.data)
+
+
+class CalidadFase4Tests(APITestCase):
+	def setUp(self):
+		self.admin = Estudiante.objects.create_user(
+			username='admin_calidad',
+			password='password123',
+			email='admin_calidad@ulsa.edu.ni',
+			is_staff=True,
+		)
+		self.student = Estudiante.objects.create_user(
+			username='alumno_calidad',
+			password='password123',
+			email='alumno_calidad@est.ulsa.edu.ni',
+			carnet='2024777',
+			carrera='IMS',
+			ano_cursado='3',
+		)
+		self.equipment = Equipo.objects.create(
+			nombre='Balón Voleibol',
+			cantidad_total=3,
+			cantidad_disponible=3,
+		)
+
+	def test_servicio_inventario_recalcula_y_previene_overbooking(self):
+		from .services.inventario import recalcular_disponibilidad_equipo, validar_disponibilidad_para_prestamo
+		from django.core.exceptions import ValidationError
+
+		# Inicialmente 3 disponibles
+		self.assertEqual(recalcular_disponibilidad_equipo(self.equipment.id), 3)
+
+		# Crear un préstamo activo de 2 unidades
+		loan = Prestamo.objects.create(
+			estudiante=self.student,
+			estado='ACTIVO',
+			fecha_devolucion=timezone.now() + timedelta(hours=4),
+		)
+		detalle = DetallePrestamo.objects.create(prestamo=loan, equipo=self.equipment, cantidad=2)
+
+		# Ahora quedan 3 - 2 = 1 disponible
+		disp = recalcular_disponibilidad_equipo(self.equipment.id)
+		self.assertEqual(disp, 1)
+
+		# Intentar validar préstamo de 2 unidades adicionales debe lanzar ValidationError (queda solo 1)
+		with self.assertRaises(ValidationError):
+			validar_disponibilidad_para_prestamo([{'equipo': self.equipment.id, 'cantidad': 2}])
+
+		# Al devolver el préstamo, la disponibilidad vuelve a 3
+		loan.estado = 'DEVUELTO'
+		loan.save()
+		disp_devuelto = recalcular_disponibilidad_equipo(self.equipment.id)
+		self.assertEqual(disp_devuelto, 3)
+
+	def test_custom_exception_handler_formats_errors(self):
+		self.client.force_authenticate(user=self.admin)
+		# Enviar datos inválidos (nombre vacío)
+		res = self.client.post(
+			reverse('equipo-list'),
+			{'nombre': ''},
+			format='json',
+		)
+		self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertIn('status_code', res.data)
+		self.assertIn('detail', res.data)
