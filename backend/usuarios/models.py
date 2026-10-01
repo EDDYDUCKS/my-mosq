@@ -80,10 +80,46 @@ class Prestamo(models.Model):
     motivo_rechazo = models.TextField(blank=True, null=True, help_text='Motivo por el cual la solicitud fue rechazada')
     solicitante_externo = models.CharField(max_length=150, null=True, blank=True, help_text='Nombre del solicitante externo (entrenador, etc.)')
     observaciones = models.TextField(blank=True, null=True, help_text='Notas adicionales sobre el préstamo')
+    recordatorio_enviado = models.BooleanField(
+        default=False,
+        help_text='Indica si ya se envió el recordatorio preventivo de devolución'
+    )
+    ESTADOS_DEVOLUCION = [
+        ('BUENO', 'Buen Estado'),
+        ('DESGASTE', 'Desgaste Normal'),
+        ('DANADO', 'Dañado / Averiado'),
+    ]
+    estado_devolucion = models.CharField(
+        max_length=20,
+        choices=ESTADOS_DEVOLUCION,
+        default='BUENO',
+        blank=True,
+        null=True,
+        help_text='Estado físico de los equipos al ser devueltos'
+    )
+    observaciones_devolucion = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Observaciones o reporte de averías/daños al momento de la devolución'
+    )
+    foto_devolucion = models.ImageField(
+        upload_to='devoluciones/',
+        blank=True,
+        null=True,
+        help_text='Fotografía de evidencia del estado del equipo devuelto'
+    )
 
     def __str__(self):
         nombre = self.solicitante_externo or self.estudiante.username
         return f"Ticket #{self.id} - {nombre}"
+
+    def get_signed_qr_token(self) -> str:
+        """
+        Genera un token firmado con timestamp para el código QR del préstamo.
+        """
+        from django.core.signing import TimestampSigner
+        signer = TimestampSigner(salt='mosq-qr-token')
+        return signer.sign(f"MOSQ-QR:{self.id}")
 
     def save(self, *args, **kwargs):
         # 1. Bloqueos de Seguridad
@@ -112,13 +148,15 @@ class Prestamo(models.Model):
             viejo_prestamo = Prestamo.objects.get(pk=self.pk)
             if viejo_prestamo.estado == 'ACTIVO' and self.estado != 'ACTIVO':
                 from .services.inventario import restaurar_stock_prestamo
-                restaurar_stock_prestamo(self.detalles.all())
+                a_mantenimiento = (self.estado == 'DEVUELTO' and self.estado_devolucion == 'DANADO')
+                restaurar_stock_prestamo(self.detalles.all(), a_mantenimiento=a_mantenimiento)
             
             # Reactivar un ticket devuelto (resta otra vez)
             elif viejo_prestamo.estado != 'ACTIVO' and self.estado == 'ACTIVO':
                 from .services.inventario import descontar_stock_prestamo
                 descontar_stock_prestamo(self.detalles.all())
         super().save(*args, **kwargs)
+
 
     def delete(self, *args, **kwargs):
         # Si borramos el ticket entero, regresamos todo a la bodega

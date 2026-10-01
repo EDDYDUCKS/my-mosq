@@ -66,14 +66,22 @@ def descontar_stock_prestamo(detalles_qs) -> None:
                 raise ValidationError(f"Stock insuficiente de '{equipo.nombre}' para completar la entrega.")
 
 
-def restaurar_stock_prestamo(detalles_qs) -> None:
+def restaurar_stock_prestamo(detalles_qs, a_mantenimiento: bool = False) -> None:
     """
     Restaura al inventario de bodega las unidades de los equipos que estaban prestados.
+    Si a_mantenimiento=True, las unidades se trasladan a cantidad_mantenimiento en vez de disponible.
     """
     from usuarios.models import Equipo
 
     with transaction.atomic():
         for detalle in detalles_qs:
             equipo = Equipo.objects.select_for_update().get(pk=detalle.equipo.pk)
-            equipo.cantidad_disponible = F('cantidad_disponible') + detalle.cantidad
-            equipo.save(update_fields=['cantidad_disponible'])
+            if a_mantenimiento:
+                equipo.cantidad_mantenimiento = F('cantidad_mantenimiento') + detalle.cantidad
+                equipo.save(update_fields=['cantidad_mantenimiento'])
+                # Recalcula disponibilidad real garantizando sincronización
+                recalcular_disponibilidad_equipo(equipo.pk)
+            else:
+                equipo.cantidad_disponible = F('cantidad_disponible') + detalle.cantidad
+                equipo.save(update_fields=['cantidad_disponible'])
+
