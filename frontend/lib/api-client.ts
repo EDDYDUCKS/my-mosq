@@ -58,6 +58,7 @@ interface BackendPrestamo {
   fecha_devolucion: string | null;
   fecha_recepcion: string | null;
   estado: 'PENDIENTE' | 'ACTIVO' | 'DEVUELTO' | 'RECHAZADO' | 'ATRASADO';
+  motivo_rechazo?: string | null;
   solicitante_externo?: string | null;
   observaciones?: string | null;
   detalles: BackendDetallePrestamo[];
@@ -324,6 +325,7 @@ function mapLoans(prestamos: BackendPrestamo[]): LoanRequest[] {
       studentYear: prestamo.estudiante_detalle?.ano_cursado || undefined,
       solicitante_externo: prestamo.solicitante_externo || null,
       notes: prestamo.observaciones || undefined,
+      motivo_rechazo: prestamo.motivo_rechazo || undefined,
       equipmentId: String(detalle.equipo),
       equipmentName: detalle.equipo_detalle
         ? `${detalle.equipo_detalle.nombre}${detalle.equipo_detalle.marca_modelo ? ` (${detalle.equipo_detalle.marca_modelo})` : ''}${detalle.equipo_detalle.color ? ` [${detalle.equipo_detalle.color}]` : ''}`

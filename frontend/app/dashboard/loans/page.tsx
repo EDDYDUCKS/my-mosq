@@ -19,6 +19,7 @@ interface LoanGroup {
   dueDate: Date;
   studentName: string;
   notes?: string;
+  motivo_rechazo?: string;
   items: { equipmentName: string; quantity: number }[];
 }
 
@@ -36,6 +37,7 @@ function groupLoans(loans: LoanRequest[]): LoanGroup[] {
         dueDate: loan.dueDate,
         studentName: loan.studentName,
         notes: loan.notes,
+        motivo_rechazo: loan.motivo_rechazo,
         items: [],
       });
     }
@@ -283,6 +285,12 @@ export default function StudentLoansPage() {
                     <div className="mt-4 pt-4 border-t border-border">
                       <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Notas</p>
                       <p className="text-sm text-foreground">{request.notes}</p>
+                    </div>
+                  )}
+                  {request.status === 'rejected' && request.motivo_rechazo && (
+                    <div className="mt-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300">
+                      <p className="text-xs font-bold uppercase tracking-wider mb-0.5">Motivo del rechazo:</p>
+                      <p className="text-sm">{request.motivo_rechazo}</p>
                     </div>
                   )}
                   {/* Botón Devolver: solo para préstamos ACTIVOS o ATRASADOS */}

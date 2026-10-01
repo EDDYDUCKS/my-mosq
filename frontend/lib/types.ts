@@ -53,6 +53,7 @@ export interface LoanRequest {
   deliveredByName?: string;
   receivedByName?: string;
   notes?: string;
+  motivo_rechazo?: string;
   solicitante_externo?: string | null;
 }
 
