@@ -7,17 +7,20 @@ import { AppHeader } from '@/components/app-header';
 import { EquipmentCardMinimal } from '@/components/equipment-card-minimal';
 import { BorrowDialog } from '@/components/borrow-dialog';
 import { Cart } from '@/components/cart';
-import { useCart } from '@/lib/cart-context';
+import { CartConfirmationDrawer } from '@/components/cart-confirmation-drawer';
+import { useCart, CartItem } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
 import { fetchEquipment } from '@/lib/api-client';
 import { Equipment } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Home, FileText, ShoppingCart, Search, Clock, User as UserIcon } from 'lucide-react';
+import { Home, FileText, ShoppingCart, Search, Clock, User as UserIcon, ArrowLeft } from 'lucide-react';
 import { isWarehouseOpen } from '@/lib/schedule';
 
 function PrestamosPageContent() {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [borrowDialogOpen, setBorrowDialogOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [lastAddedItem, setLastAddedItem] = useState<CartItem | null>(null);
   const [activeTab, setActiveTab] = useState<'catalog' | 'cart'>('catalog');
   const [searchQuery, setSearchQuery] = useState('');
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -25,7 +28,7 @@ function PrestamosPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  useCart();
+  const { addToCart } = useCart();
 
   const warehouseStatus = useMemo(() => isWarehouseOpen(), []);
 
@@ -86,6 +89,24 @@ function PrestamosPageContent() {
   const switchTab = (tab: 'catalog' | 'cart') => {
     setActiveTab(tab);
     router.replace(tab === 'cart' ? '/prestamos?view=cart' : '/prestamos');
+  };
+
+  const handleQuickAdd = (eq: Equipment) => {
+    const item: CartItem = {
+      id: String(eq.id),
+      name: eq.marca_modelo ? `${eq.name} (${eq.marca_modelo})` : eq.name,
+      category: eq.category,
+      quantity: 1,
+      equipment: eq,
+    };
+    addToCart(item);
+    setLastAddedItem(item);
+    setDrawerOpen(true);
+  };
+
+  const handleAddedItem = (item: CartItem) => {
+    setLastAddedItem(item);
+    setDrawerOpen(true);
   };
 
   const navItems = [
@@ -155,19 +176,20 @@ function PrestamosPageContent() {
 
             {activeTab === 'cart' && (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-border">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Mi Carrito de Préstamo</h2>
-                    <p className="text-sm text-muted-foreground">Revisa y envía tu solicitud de préstamo</p>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Tramitar Solicitud de Préstamo</h2>
+                    <p className="text-sm text-muted-foreground">Revisa los artículos y confirma la fecha de devolución</p>
                   </div>
                   <button
                     onClick={() => switchTab('catalog')}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm shrink-0"
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-card text-foreground rounded-xl hover:bg-muted transition-colors font-medium text-sm shrink-0 shadow-xs"
                   >
-                    ← Volver al Catálogo
+                    <ArrowLeft className="w-4 h-4" />
+                    Seguir explorando catálogo
                   </button>
                 </div>
-                <div className="max-w-2xl">
+                <div className="w-full">
                   <Cart />
                 </div>
               </div>
@@ -180,6 +202,16 @@ function PrestamosPageContent() {
         equipment={selectedEquipment}
         open={borrowDialogOpen}
         onOpenChange={setBorrowDialogOpen}
+        onAddedItem={handleAddedItem}
+      />
+
+      <CartConfirmationDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        lastAddedItem={lastAddedItem}
+        onGoToCart={() => switchTab('cart')}
+        allEquipment={equipment}
+        onQuickAdd={handleQuickAdd}
       />
     </ProtectedLayout>
   );

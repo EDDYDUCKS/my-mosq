@@ -20,9 +20,10 @@ interface BorrowDialogProps {
   equipment: (Equipment & { variants?: Equipment[] }) | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddedItem?: (item: any) => void;
 }
 
-export function BorrowDialog({ equipment, open, onOpenChange }: BorrowDialogProps) {
+export function BorrowDialog({ equipment, open, onOpenChange, onAddedItem }: BorrowDialogProps) {
   const { addToCart } = useCart();
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -34,30 +35,31 @@ export function BorrowDialog({ equipment, open, onOpenChange }: BorrowDialogProp
 
     const variantsToProcess = equipment.variants || [equipment];
     let addedSomething = false;
+    let lastAdded: any = null;
 
     variantsToProcess.forEach(variant => {
       const q = parseInt(quantities[variant.id] || '0');
       if (q > 0) {
-        addToCart({
+        const item = {
           id: variant.id,
           name: variant.marca_modelo ? `${variant.name} (${variant.marca_modelo})` : variant.name,
           category: variant.category,
           quantity: q,
           equipment: variant,
-        });
+        };
+        addToCart(item);
+        lastAdded = item;
         addedSomething = true;
       }
     });
 
     if (!addedSomething) return; // Prevent empty submits
 
-    setSubmitted(true);
-
-    setTimeout(() => {
-      setQuantities({});
-      setSubmitted(false);
-      onOpenChange(false);
-    }, 1500);
+    setQuantities({});
+    onOpenChange(false);
+    if (onAddedItem && lastAdded) {
+      onAddedItem(lastAdded);
+    }
   };
 
   if (!equipment) return null;
