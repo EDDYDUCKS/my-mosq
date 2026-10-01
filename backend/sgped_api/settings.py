@@ -40,11 +40,15 @@ _load_env_file()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-change-me')
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError("La variable de entorno SECRET_KEY es obligatoria cuando DEBUG=False en producción.")
+    SECRET_KEY = 'django-insecure-dev-only-change-me'
 
 # En Render, el dominio terminará en .onrender.com
 # ALLOWED_HOSTS toma un string separado por comas: ej. "127.0.0.1,localhost,mosq-api.onrender.com"
