@@ -172,3 +172,89 @@ class ReglasNegocioFase2Tests(APITestCase):
 		# Idempotencia: segunda ejecución debe dar 0 para este préstamo
 		total_segundo, ids_segundo = ejecutar_procesamiento_atrasados()
 		self.assertNotIn(prestamo_activo.id, ids_segundo)
+
+
+class SeguridadFase3Tests(APITestCase):
+	def setUp(self):
+		from rest_framework.authtoken.models import Token
+		self.admin = Estudiante.objects.create_user(
+			username='admin_sec',
+			password='password123',
+			email='admin_sec@ulsa.edu.ni',
+			is_staff=True,
+		)
+		self.student = Estudiante.objects.create_user(
+			username='alumno_sec',
+			password='password123',
+			email='alumno_sec@est.ulsa.edu.ni',
+			carnet='2024888',
+			carrera='LAF',
+			ano_cursado='1',
+		)
+
+	def test_expired_token_is_rejected_and_deleted(self):
+		from rest_framework.authtoken.models import Token
+		token = Token.objects.create(user=self.student)
+		# Simular token de hace 25 horas
+		Token.objects.filter(pk=token.pk).update(created=timezone.now() - timedelta(hours=25))
+
+		response = self.client.get(
+			reverse('auth_me'),
+			HTTP_AUTHORIZATION=f'Token {token.key}',
+		)
+
+		self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+		self.assertIn('expirado', response.data.get('detail', '').lower())
+		self.assertFalse(Token.objects.filter(key=token.key).exists())
+
+	def test_login_rotates_token(self):
+		from rest_framework.authtoken.models import Token
+		# Primer login
+		r1 = self.client.post(reverse('auth_login'), {'email': 'alumno_sec@est.ulsa.edu.ni', 'password': 'password123'}, format='json')
+		self.assertEqual(r1.status_code, status.HTTP_200_OK)
+		token1 = r1.data['token']
+
+		# Segundo login (debe generar un nuevo token y descartar el viejo)
+		r2 = self.client.post(reverse('auth_login'), {'email': 'alumno_sec@est.ulsa.edu.ni', 'password': 'password123'}, format='json')
+		self.assertEqual(r2.status_code, status.HTTP_200_OK)
+		token2 = r2.data['token']
+
+		self.assertNotEqual(token1, token2)
+		self.assertFalse(Token.objects.filter(key=token1).exists())
+		self.assertTrue(Token.objects.filter(key=token2).exists())
+
+	def test_logout_invalidates_token(self):
+		from rest_framework.authtoken.models import Token
+		token = Token.objects.create(user=self.student)
+
+		logout_res = self.client.post(
+			reverse('auth_logout'),
+			HTTP_AUTHORIZATION=f'Token {token.key}',
+		)
+		self.assertEqual(logout_res.status_code, status.HTTP_200_OK)
+		self.assertFalse(Token.objects.filter(key=token.key).exists())
+
+		# Intentar acceder con token invalidado
+		me_res = self.client.get(
+			reverse('auth_me'),
+			HTTP_AUTHORIZATION=f'Token {token.key}',
+		)
+		self.assertEqual(me_res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+	def test_my_ip_restricted_to_admin(self):
+		from rest_framework.authtoken.models import Token
+		token_student = Token.objects.create(user=self.student)
+		token_admin = Token.objects.create(user=self.admin)
+
+		# Anónimo -> 401
+		r_anon = self.client.get(reverse('my_ip'))
+		self.assertEqual(r_anon.status_code, status.HTTP_401_UNAUTHORIZED)
+
+		# Estudiante -> 403
+		r_student = self.client.get(reverse('my_ip'), HTTP_AUTHORIZATION=f'Token {token_student.key}')
+		self.assertEqual(r_student.status_code, status.HTTP_403_FORBIDDEN)
+
+		# Admin -> 200
+		r_admin = self.client.get(reverse('my_ip'), HTTP_AUTHORIZATION=f'Token {token_admin.key}')
+		self.assertEqual(r_admin.status_code, status.HTTP_200_OK)
+		self.assertIn('ip_detectada', r_admin.data)
