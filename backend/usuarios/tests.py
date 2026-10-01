@@ -322,3 +322,15 @@ class CalidadFase4Tests(APITestCase):
 		self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 		self.assertIn('status_code', res.data)
 		self.assertIn('detail', res.data)
+
+	def test_health_check_endpoint_public_and_minimal(self):
+		# No autenticado
+		self.client.force_authenticate(user=None)
+		res = self.client.get(reverse('health_check'))
+		self.assertEqual(res.status_code, status.HTTP_200_OK)
+		self.assertEqual(res.data.get('status'), 'ok')
+		self.assertEqual(res.data.get('service'), 'mosq-sgped-api')
+		# No debe exponer datos sensibles
+		self.assertNotIn('database', res.data)
+		self.assertNotIn('secret_key', res.data)
+

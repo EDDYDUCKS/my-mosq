@@ -218,3 +218,18 @@ if frontend_url:
 
 # CORS_ALLOW_ALL_ORIGINS no es recomendado en producción,
 # lo dejaremos desactivado y usaremos explícitamente CORS_ALLOWED_ORIGINS.
+
+# --- INTEGRACIÓN OPCIONAL CON SENTRY (Monitoreo de Errores) ---
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration()],
+            send_default_pii=False,
+            traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+        )
+    except ImportError:
+        pass

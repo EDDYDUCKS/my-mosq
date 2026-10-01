@@ -97,7 +97,36 @@ En el panel de control de Render:
 
 ---
 
-## 5. Mantenimiento y Comandos Útiles
+## 5. Monitoreo, Health Check y Prevención de Suspensión en Render
+
+### Endpoint de Monitoreo (`/api/health/`)
+- **URL:** `GET https://<tu-backend>.onrender.com/api/health/`
+- **Permisos:** Público (`AllowAny`).
+- **Respuesta:**
+  ```json
+  {
+    "status": "ok",
+    "service": "mosq-sgped-api"
+  }
+  ```
+- **Seguridad:** No expone credenciales, versión de base de datos ni datos sensibles.
+
+### Prevención de Suspensión en Render (Free Tier Keep-Alive)
+Render suspende los servicios en el plan gratuito si no reciben solicitudes durante 15 minutos. Para mantener el backend despierto durante el horario de atención institucional (lunes a sábado, 7:00 a 19:00):
+1. Configurar un monitor HTTP gratuito (ej. **UptimeRobot**, **cron-job.org** o **Better Stack**).
+2. Apuntar a la URL: `https://<tu-backend>.onrender.com/api/health/`.
+3. Intervalo recomendado: **Cada 10 a 14 minutos**.
+
+### Integración con Sentry (Opcional)
+- Para habilitar la captura de errores no controlados en producción, basta con definir la variable de entorno:
+  ```env
+  SENTRY_DSN=https://xxx@yyy.ingest.sentry.io/zzz
+  ```
+- Si la variable `SENTRY_DSN` no está definida o no está instalado el SDK, el sistema opera con normalidad sin lanzar ninguna excepción ni retrasar el arranque.
+
+---
+
+## 6. Mantenimiento y Comandos Útiles
 
 ```bash
 # Entrar al directorio del backend
@@ -118,3 +147,4 @@ python manage.py createsuperuser
 # Probar ejecución de comando de atrasos con salida detallada
 python manage.py procesar_atrasados -v 2
 ```
+

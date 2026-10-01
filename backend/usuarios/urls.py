@@ -29,4 +29,7 @@ urlpatterns = [
 
     # NUEVA RUTA: Diagnóstico de IP
     path('my-ip/', views.my_ip, name='my_ip'),
-]
+
+    # NUEVA RUTA: Monitoreo de salud público
+    path('health/', views.health_check, name='health_check'),
+]

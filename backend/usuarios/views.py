@@ -1109,3 +1109,16 @@ def my_ip(request):
         'ip_detectada': ip,
         'mensaje': 'Usa esta IP para configurar ALLOWED_IPS en Render. También soporta CIDR (ej: 190.212.45.0/24)'
     })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def health_check(request):
+    """
+    Endpoint público y mínimo de monitoreo de disponibilidad (health check).
+    No expone información sensible ni credenciales.
+    """
+    return Response({
+        'status': 'ok',
+        'service': 'mosq-sgped-api'
+    })
