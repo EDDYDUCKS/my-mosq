@@ -1,2 +1,0 @@
-Para que instales todas las dependencias para prender el backend necesitas este comando
-pip install -r InstalacionesNecesarias.txt
