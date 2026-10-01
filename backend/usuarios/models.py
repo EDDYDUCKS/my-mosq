@@ -56,16 +56,8 @@ class Equipo(models.Model):
         return self.nombre
 
     def recalcular_disponibilidad(self):
-        from django.db.models import Sum
-        prestados_activos = self.detalleprestamo_set.filter(
-            prestamo__estado='ACTIVO'
-        ).aggregate(total=Sum('cantidad'))['total'] or 0
-
-        nueva_disponible = max(0, self.cantidad_total - self.cantidad_mantenimiento - prestados_activos)
-        if self.cantidad_disponible != nueva_disponible:
-            self.cantidad_disponible = nueva_disponible
-            self.save(update_fields=['cantidad_disponible'])
-        return nueva_disponible
+        from .services.inventario import recalcular_disponibilidad_equipo
+        return recalcular_disponibilidad_equipo(self.pk)
 
 # --- MODELO PRESTAMO (EL TICKET GENERAL) ---
 class Prestamo(models.Model):
@@ -119,32 +111,20 @@ class Prestamo(models.Model):
         if self.pk:
             viejo_prestamo = Prestamo.objects.get(pk=self.pk)
             if viejo_prestamo.estado == 'ACTIVO' and self.estado != 'ACTIVO':
-                with transaction.atomic():
-                    for detalle in self.detalles.all():
-                        equipo = Equipo.objects.select_for_update().get(pk=detalle.equipo.pk)
-                        equipo.cantidad_disponible = F('cantidad_disponible') + detalle.cantidad
-                        equipo.save(update_fields=['cantidad_disponible'])
+                from .services.inventario import restaurar_stock_prestamo
+                restaurar_stock_prestamo(self.detalles.all())
             
             # Reactivar un ticket devuelto (resta otra vez)
             elif viejo_prestamo.estado != 'ACTIVO' and self.estado == 'ACTIVO':
-                with transaction.atomic():
-                    for detalle in self.detalles.all():
-                        equipo = Equipo.objects.select_for_update().get(pk=detalle.equipo.pk)
-                        if equipo.cantidad_disponible >= detalle.cantidad:
-                            equipo.cantidad_disponible = F('cantidad_disponible') - detalle.cantidad
-                            equipo.save(update_fields=['cantidad_disponible'])
-                        else:
-                            raise ValidationError(f"¡Faltan '{equipo.nombre}' en bodega para reactivar!")
+                from .services.inventario import descontar_stock_prestamo
+                descontar_stock_prestamo(self.detalles.all())
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         # Si borramos el ticket entero, regresamos todo a la bodega
         if self.estado == 'ACTIVO':
-            with transaction.atomic():
-                for detalle in self.detalles.all():
-                    equipo = Equipo.objects.select_for_update().get(pk=detalle.equipo.pk)
-                    equipo.cantidad_disponible = F('cantidad_disponible') + detalle.cantidad
-                    equipo.save(update_fields=['cantidad_disponible'])
+            from .services.inventario import restaurar_stock_prestamo
+            restaurar_stock_prestamo(self.detalles.all())
         super().delete(*args, **kwargs)
 
 # --- NUEVO: MODELO DETALLE_PRESTAMO (LAS LÍNEAS DEL CARRITO) ---

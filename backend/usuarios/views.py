@@ -326,12 +326,9 @@ class PrestamoViewSet(viewsets.ModelViewSet):
 
         if nuevo_estado == 'ACTIVO' and estado_actual != 'ACTIVO':
             p_inst = serializer.instance
-            # Verificación Anti-Overbooking
-            for detalle in p_inst.detalles.select_related('equipo').all():
-                eq = detalle.equipo
-                disp = eq.recalcular_disponibilidad()
-                if disp < detalle.cantidad:
-                    raise ValidationError(f"No hay suficiente stock disponible de '{eq.nombre}' (Quedan {disp} disponibles, solicita {detalle.cantidad}).")
+            # Verificación Anti-Overbooking centralizada
+            from .services.inventario import validar_disponibilidad_para_prestamo
+            validar_disponibilidad_para_prestamo(p_inst.detalles.select_related('equipo').all())
 
             save_kwargs['entregado_por'] = self.request.user
             registrar_auditoria(
