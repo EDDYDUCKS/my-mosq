@@ -422,7 +422,7 @@ export default function AdminLoansPage() {
               ) : (
                 <div className="flex flex-col sm:flex-row gap-2 w-full">
                   <Button
-                    onClick={() => initiateReturn(group.groupId, group.studentId)}
+                    onClick={() => initiateReturn(group.groupId, group.representative?.solicitante_externo ? undefined : group.studentId)}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white gap-2"
                     disabled={working}
                   >
@@ -755,17 +755,23 @@ export default function AdminLoansPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="apply-sanction" className="text-base font-semibold">Aplicar Sanción</Label>
-                <p className="text-xs text-muted-foreground">Si el equipo fue dañado o devuelto tarde</p>
+            {returnTarget?.studentId ? (
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="apply-sanction" className="text-base font-semibold">Aplicar Sanción</Label>
+                  <p className="text-xs text-muted-foreground">Si el equipo fue dañado o devuelto tarde</p>
+                </div>
+                <Switch
+                  id="apply-sanction"
+                  checked={applySanction}
+                  onCheckedChange={setApplySanction}
+                />
               </div>
-              <Switch
-                id="apply-sanction"
-                checked={applySanction}
-                onCheckedChange={setApplySanction}
-              />
-            </div>
+            ) : (
+              <div className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/60">
+                Préstamo a solicitante externo: no aplica sanciones en cuentas estudiantiles.
+              </div>
+            )}
 
 
             {applySanction && (

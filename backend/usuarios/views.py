@@ -438,14 +438,14 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             sancion = Sancion.objects.create(
                 estudiante=prestamo.estudiante,
                 creada_por=request.user,
-                severity='restriction',
-                reason=f"Reposición por equipo perdido en Solicitud #{prestamo.id}: {motivo}",
-                notes="Sanción automática por extravío de patrimonio universitario."
+                severidad='restriction',
+                motivo=f"Reposición por equipo perdido en Solicitud #{prestamo.id}: {motivo}",
+                observaciones="Sanción automática por extravío de patrimonio universitario."
             )
 
             registrar_auditoria(
                 usuario=request.user,
-                accion='EDITAR_EQUIPO',
+                accion='DECLARAR_PERDIDO',
                 descripcion=f"Préstamo #{prestamo.id} declarado como PERDIDO para {prestamo.estudiante.username}. Se descontó stock total y se generó sanción.",
                 ip_address=request
             )
@@ -481,7 +481,7 @@ class PrestamoViewSet(viewsets.ModelViewSet):
 
         registrar_auditoria(
             usuario=request.user,
-            accion='RECHAZAR_PRESTAMO',
+            accion='CANCELAR_PRESTAMO',
             descripcion=f"Solicitud #{prestamo.id} CANCELADA por el propio estudiante",
             ip_address=request
         )
@@ -591,7 +591,7 @@ class SancionViewSet(viewsets.ModelViewSet):
         instance.delete()
         registrar_auditoria(
             usuario=self.request.user,
-            accion='CREAR_SANCION',
+            accion='ELIMINAR_SANCION',
             descripcion=f"Sanción #{sancion_id} eliminada para {estudiante_username}",
             ip_address=self.request
         )
@@ -949,7 +949,7 @@ def exportar_reporte_excel(request):
             fill_color = COLOR_FILA_PAR if es_par else COLOR_FILA_IMPAR
             fill_fila = PatternFill(fill_type='solid', start_color=fill_color, end_color=fill_color)
 
-            en_prestamo = max(0, eq.cantidad_total - eq.cantidad_disponible)
+            en_prestamo = max(0, eq.cantidad_total - (eq.cantidad_disponible + (eq.cantidad_mantenimiento or 0)))
             sum_total       += eq.cantidad_total
             sum_disponibles += eq.cantidad_disponible
             sum_prestados   += en_prestamo
@@ -1062,6 +1062,12 @@ class GoogleLoginView(APIView):
             if not any(email.endswith(dominio) for dominio in dominios_permitidos):
                 return Response({'detail': 'Dominio no autorizado. Usa tu correo institucional de la universidad.'}, status=403)
 
+            # S6: Validar campo de hosted domain (hd) si está provisto por Google
+            hd = (idinfo.get('hd') or '').strip().lower()
+            dominios_validos_hd = ('est.ulsa.edu.ni', 'ulsa.edu.ni', 'ac.ulsa.edu.ni')
+            if hd and hd not in dominios_validos_hd:
+                return Response({'detail': f'Dominio de cuenta Google ({hd}) no autorizado.'}, status=403)
+
             # Buscar o crear usuario
             user, created = User.objects.get_or_create(username=email, defaults={
                 'email': email,
@@ -1154,7 +1160,8 @@ class CompletarPerfilView(APIView):
             }
         })
 
-from django.http import JsonResponse
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
 def clear_broken_images_view(request):
     cleared = []
     for e in Equipo.objects.exclude(imagen=''):

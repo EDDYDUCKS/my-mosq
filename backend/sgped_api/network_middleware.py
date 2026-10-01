@@ -65,7 +65,6 @@ class AllowedNetworkMiddleware:
         '/api/auth/',
         '/api/login/',
         '/api/google-login/',
-        '/api/fix-images/',
         '/media/',
         '/static/',
         '/favicon.ico',

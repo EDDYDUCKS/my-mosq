@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 const RAW = process.env.ALLOWED_IPS ?? '*';
 const ALLOWED = RAW.split(',').map(s => s.trim()).filter(Boolean);
 
-// ── Cookie de bypass (puerta secreta) ─────────────────────────────────────
+// ── Cookie de bypass ─────────────────────────────────────────────────────
 const BYPASS_COOKIE = 'mosq_bypass';
-const BYPASS_TOKEN  = 'ulsa-dev-2025';
+const BYPASS_TOKEN  = process.env.BYPASS_TOKEN || '';
 
 // Rutas que NO necesitan verificación
 const PUBLIC_PATHS = ['/', '/sin-acceso', '/login', '/_next', '/favicon', '/ESTRELLASALLE', '/manifest.json'];
@@ -36,9 +36,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Puerta secreta: si la cookie de bypass es válida, acceso libre ──
+  // ── Bypass vía variable de entorno en servidor (solo si está configurada) ──
   const bypassCookie = req.cookies.get(BYPASS_COOKIE);
-  if (bypassCookie?.value === BYPASS_TOKEN) {
+  if (BYPASS_TOKEN && bypassCookie?.value === BYPASS_TOKEN) {
     return NextResponse.next();
   }
 

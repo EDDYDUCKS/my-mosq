@@ -469,7 +469,7 @@ export async function fetchAuditLogs(): Promise<AuditLog[]> {
 export async function declareLoanLost(groupId: string, reason?: string): Promise<LoanRequest> {
   const data = await apiRequest<BackendPrestamo>(`/prestamos/${groupId}/declarar_perdido/`, {
     method: 'POST',
-    body: JSON.stringify({ motivo: reason }),
+    body: { motivo: reason },
   });
   return mapLoans([data])[0];
 }

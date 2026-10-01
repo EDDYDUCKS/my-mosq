@@ -22,6 +22,14 @@ class DetallePrestamoInline(admin.TabularInline):
     extra = 0
 
 
+@admin.register(DetallePrestamo)
+class DetallePrestamoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'prestamo', 'equipo', 'cantidad')
+    list_filter = ('equipo',)
+    search_fields = ('prestamo__id', 'equipo__nombre')
+    ordering = ('-prestamo__id',)
+
+
 @admin.register(Prestamo)
 class PrestamoAdmin(admin.ModelAdmin):
     list_display = ('id', 'estudiante', 'estado', 'fecha_prestamo', 'fecha_devolucion', 'entregado_por', 'recibido_por')

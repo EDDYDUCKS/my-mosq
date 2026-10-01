@@ -20,7 +20,7 @@ def recalcular_disponibilidad_equipo(equipo_id: int) -> int:
         equipo = Equipo.objects.select_for_update().get(pk=equipo_id)
         prestados_activos = (
             DetallePrestamo.objects
-            .filter(prestamo__estado='ACTIVO', equipo=equipo)
+            .filter(prestamo__estado__in=['ACTIVO', 'ATRASADO'], equipo=equipo)
             .aggregate(total=Sum('cantidad'))['total'] or 0
         )
         nueva_disponible = max(0, equipo.cantidad_total - equipo.cantidad_mantenimiento - prestados_activos)

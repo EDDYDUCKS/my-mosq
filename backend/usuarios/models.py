@@ -143,24 +143,27 @@ class Prestamo(models.Model):
                 if prestamos_activos.exists():
                     raise ValidationError(f"¡Bloqueado! {self.estudiante.username} ya tiene un carrito sin devolver.")
 
-        # 2. Devolución automática al inventario cuando todo el ticket cambia a DEVUELTO
+        # 2. Devolución automática al inventario cuando el equipo regresa a bodega
         if self.pk:
             viejo_prestamo = Prestamo.objects.get(pk=self.pk)
-            if viejo_prestamo.estado == 'ACTIVO' and self.estado != 'ACTIVO':
-                from .services.inventario import restaurar_stock_prestamo
-                a_mantenimiento = (self.estado == 'DEVUELTO' and self.estado_devolucion == 'DANADO')
-                restaurar_stock_prestamo(self.detalles.all(), a_mantenimiento=a_mantenimiento)
+            estados_con_equipo = ('ACTIVO', 'ATRASADO')
+            # Solo restaurar si sale de estar con el estudiante hacia devuelto/cerrado
+            if viejo_prestamo.estado in estados_con_equipo and self.estado not in estados_con_equipo:
+                if self.estado != 'PERDIDO':
+                    from .services.inventario import restaurar_stock_prestamo
+                    a_mantenimiento = (self.estado == 'DEVUELTO' and self.estado_devolucion == 'DANADO')
+                    restaurar_stock_prestamo(self.detalles.all(), a_mantenimiento=a_mantenimiento)
             
-            # Reactivar un ticket devuelto (resta otra vez)
-            elif viejo_prestamo.estado != 'ACTIVO' and self.estado == 'ACTIVO':
+            # Reactivar un ticket que estaba devuelto hacia activo
+            elif viejo_prestamo.estado not in estados_con_equipo and self.estado in estados_con_equipo:
                 from .services.inventario import descontar_stock_prestamo
                 descontar_stock_prestamo(self.detalles.all())
         super().save(*args, **kwargs)
 
 
     def delete(self, *args, **kwargs):
-        # Si borramos el ticket entero, regresamos todo a la bodega
-        if self.estado == 'ACTIVO':
+        # Si borramos el ticket entero mientras el equipo estaba prestado, regresamos todo a la bodega
+        if self.estado in ('ACTIVO', 'ATRASADO'):
             from .services.inventario import restaurar_stock_prestamo
             restaurar_stock_prestamo(self.detalles.all())
         super().delete(*args, **kwargs)
@@ -263,6 +266,9 @@ class BitacoraAccion(models.Model):
         ('ELIMINAR_EQUIPO', 'Eliminar Equipo'),
         ('CREAR_SANCION', 'Crear Sanción'),
         ('RESOLVER_SANCION', 'Resolver Sanción'),
+        ('ELIMINAR_SANCION', 'Eliminar Sanción'),
+        ('CANCELAR_PRESTAMO', 'Cancelar Préstamo'),
+        ('DECLARAR_PERDIDO', 'Declarar Equipo Perdido'),
     ]
 
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
