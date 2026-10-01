@@ -27,6 +27,7 @@ class ExcelBinaryRenderer(BaseRenderer):
         return data
 from .models import Estudiante, Equipo, Prestamo, Sancion, BitacoraAccion
 from .serializers import EstudianteSerializer, EquipoSerializer, PrestamoSerializer, SancionSerializer, BitacoraAccionSerializer
+from .pagination import StandardResultsSetPagination
 from .utils import registrar_auditoria, enviar_notificacion_email
 import os
 from google.oauth2 import id_token
@@ -181,6 +182,7 @@ class EquipoViewSet(viewsets.ModelViewSet):
     serializer_class = EquipoSerializer
     permission_classes = [IsAdminOrReadOnly]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+    pagination_class = None
 
     def perform_create(self, serializer):
         equipo = serializer.save()
@@ -545,6 +547,7 @@ class BitacoraViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = BitacoraAccion.objects.all()
     serializer_class = BitacoraAccionSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         user = self.request.user
