@@ -975,14 +975,17 @@ class GoogleLoginView(APIView):
                 clock_skew_in_seconds=15
             )
 
-            email = idinfo.get('email', '')
+            email = (idinfo.get('email') or '').strip().lower()
+            if not idinfo.get('email_verified'):
+                return Response({'detail': 'El correo institucional de Google no se encuentra verificado.'}, status=403)
+
             first_name = idinfo.get('given_name', '')
             last_name = idinfo.get('family_name', '')
 
-            # Verificar dominios permitidos
-            dominios_permitidos = ['@est.ulsa.edu.ni', '@ulsa.edu.ni', '@ac.ulsa.edu.ni']
+            # Verificar dominios permitidos institucionalmente
+            dominios_permitidos = ('@est.ulsa.edu.ni', '@ulsa.edu.ni', '@ac.ulsa.edu.ni')
             if not any(email.endswith(dominio) for dominio in dominios_permitidos):
-                return Response({'detail': 'Dominio no autorizado. Usa tu correo de la universidad.'}, status=403)
+                return Response({'detail': 'Dominio no autorizado. Usa tu correo institucional de la universidad.'}, status=403)
 
             # Buscar o crear usuario
             user, created = User.objects.get_or_create(username=email, defaults={
@@ -1025,9 +1028,10 @@ class GoogleLoginView(APIView):
                 }
             })
 
-        except ValueError as e:
-            print(f"Error de Google Auth: {str(e)}")
-            return Response({'detail': f'Token inválido: {str(e)}'}, status=401)
+        except ValueError:
+            return Response({'detail': 'Token de Google inválido o expirado.'}, status=401)
+        except Exception:
+            return Response({'detail': 'No fue posible validar la autenticación con Google.'}, status=400)
 
 
 import re
