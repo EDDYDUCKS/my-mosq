@@ -55,6 +55,7 @@ class PrestamoSerializer(serializers.ModelSerializer):
     recibido_por_detalle = EstudianteSerializer(source='recibido_por', read_only=True)
     # Aquí le decimos que este ticket contiene muchos "detalles" (el carrito)
     detalles = DetallePrestamoSerializer(many=True)
+    qr_token = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Prestamo
@@ -73,9 +74,17 @@ class PrestamoSerializer(serializers.ModelSerializer):
             'motivo_rechazo',
             'solicitante_externo',
             'observaciones',
+            'estado_devolucion',
+            'observaciones_devolucion',
+            'foto_devolucion',
+            'recordatorio_enviado',
+            'qr_token',
             'detalles',
         ]
-        read_only_fields = ['entregado_por', 'recibido_por', 'fecha_recepcion']
+        read_only_fields = ['entregado_por', 'recibido_por', 'fecha_recepcion', 'qr_token', 'recordatorio_enviado']
+
+    def get_qr_token(self, obj) -> str:
+        return obj.get_signed_qr_token()
 
     def validate_fecha_devolucion(self, value):
         if not value:
@@ -83,6 +92,7 @@ class PrestamoSerializer(serializers.ModelSerializer):
         
         hoy = timezone.localdate()
         fecha = value.date() if hasattr(value, 'date') else value
+
         
         diferencia = (fecha - hoy).days
         if diferencia < 0:

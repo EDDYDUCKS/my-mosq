@@ -506,6 +506,54 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             'recordatorios_enviados': recordatorios
         })
 
+    @action(detail=False, methods=['post'], url_path='validar-qr')
+    def validar_qr(self, request):
+        """
+        Valida un código QR escaneado por el operador.
+        Soporta tokens firmados con caducidad (formato moderno)
+        y 'MOSQ-LOAN-{id}' (compatibilidad retrospectiva).
+        """
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied('Solo administradores pueden validar códigos QR de préstamos.')
+
+        qr_data = (request.data.get('qr_data') or request.data.get('qr') or '').strip()
+        if not qr_data:
+            return Response({'error': 'Debe proporcionar el contenido del código QR (qr_data).'}, status=400)
+
+        import re
+        from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+
+        loan_id = None
+        # 1. Comprobar formato retrospectivo tradicional: MOSQ-LOAN-{id}
+        legacy_match = re.match(r'^MOSQ-LOAN-(\d+)$', qr_data)
+        if legacy_match:
+            loan_id = int(legacy_match.group(1))
+        else:
+            # 2. Desfirmar y validar token con caducidad (máximo 48 horas / 172800 seg)
+            signer = TimestampSigner(salt='mosq-qr-token')
+            try:
+                unsign_data = signer.unsign(qr_data, max_age=172800)
+                if unsign_data.startswith('MOSQ-QR:'):
+                    loan_id = int(unsign_data.split(':', 1)[1])
+                else:
+                    return Response({'error': 'Contenido del código QR no reconocido.'}, status=400)
+            except SignatureExpired:
+                return Response({'error': 'El código QR ha expirado. Por favor solicite al estudiante regenerarlo.'}, status=400)
+            except BadSignature:
+                return Response({'error': 'Código QR inválido o firma alterada.'}, status=400)
+
+        try:
+            prestamo = Prestamo.objects.select_related('estudiante').prefetch_related('detalles__equipo').get(pk=loan_id)
+        except Prestamo.DoesNotExist:
+            return Response({'error': f'No existe ningún préstamo con ID #{loan_id}.'}, status=404)
+
+        return Response({
+            'valid': True,
+            'loan_id': prestamo.id,
+            'prestamo': PrestamoSerializer(prestamo).data
+        })
+
+
 
 
 class SancionViewSet(viewsets.ModelViewSet):
