@@ -8,7 +8,7 @@ import { resolveEquipmentImage } from '@/lib/api-client';
 
 interface EquipmentCardMinimalProps {
   equipment: Equipment;
-  onBorrow?: (equipment: Equipment) => void;
+  onBorrow?: (equipment: Equipment, manualChoose?: boolean) => void;
 }
 
 export function EquipmentCardMinimal({ equipment, onBorrow }: EquipmentCardMinimalProps) {
@@ -85,17 +85,33 @@ export function EquipmentCardMinimal({ equipment, onBorrow }: EquipmentCardMinim
 
         {/* Button */}
         {onBorrow && (
-          <Button
-            onClick={() => onBorrow(equipment)}
-            disabled={!isAvailable}
-            className={`w-full mt-4 h-9 text-xs font-semibold rounded-xl transition-all ${
-              isAvailable
-                ? 'bg-[#1b4931] hover:bg-[#163c28] text-white shadow-sm'
-                : 'bg-muted text-muted-foreground cursor-not-allowed hover:bg-muted'
-            }`}
-          >
-            {isAvailable ? 'Solicitar Préstamo' : 'No Disponible'}
-          </Button>
+          <div className="mt-4 flex items-center gap-1.5">
+            <Button
+              onClick={() => onBorrow(equipment)}
+              disabled={!isAvailable}
+              className={`flex-1 h-10 text-xs font-semibold rounded-xl shadow-xs transition-all ${
+                isAvailable
+                  ? 'bg-[#1b4931] hover:bg-[#163c28] text-white active:scale-98'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed hover:bg-muted'
+              }`}
+            >
+              {isAvailable ? 'Solicitar (+1)' : 'No Disponible'}
+            </Button>
+            {isAvailable && (equipment as any).variants && (equipment as any).variants.length > 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBorrow(equipment, true);
+                }}
+                className="h-10 px-2.5 text-[11px] font-medium border-border hover:bg-muted text-muted-foreground rounded-xl"
+                title="Elegir marca o modelo específico"
+              >
+                Modelos
+              </Button>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

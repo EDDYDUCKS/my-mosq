@@ -81,9 +81,32 @@ function PrestamosPageContent() {
     );
   }, [equipment, searchQuery]);
 
-  const handleBorrow = (eq: Equipment & { variants?: Equipment[] }) => {
-    setSelectedEquipment(eq);
-    setBorrowDialogOpen(true);
+  const handleBorrow = (eq: Equipment & { variants?: Equipment[] }, manualChoose?: boolean) => {
+    // Si el usuario presiona "Modelos", abrir el diálogo de selección de variantes
+    if (manualChoose) {
+      setSelectedEquipment(eq);
+      setBorrowDialogOpen(true);
+      return;
+    }
+
+    // Flujo 1-clic: agregar inmediatamente 1 unidad del modelo con stock disponible
+    const variants = eq.variants || [eq];
+    const availableVariant = variants.find(v => v.available > 0) || variants[0];
+    
+    if (availableVariant) {
+      const item: CartItem = {
+        id: String(availableVariant.id),
+        name: availableVariant.marca_modelo 
+          ? `${availableVariant.name} (${availableVariant.marca_modelo})` 
+          : availableVariant.name,
+        category: availableVariant.category,
+        quantity: 1,
+        equipment: availableVariant,
+      };
+      addToCart(item);
+      setLastAddedItem(item);
+      setDrawerOpen(true);
+    }
   };
 
   const switchTab = (tab: 'catalog' | 'cart') => {
