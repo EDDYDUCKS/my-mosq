@@ -1197,4 +1197,87 @@ def health_check(request):
     return Response({
         'status': 'ok',
         'service': 'mosq-sgped-api'
-    })
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def estadisticas_dashboard(request):
+    """
+    Endpoint de analítica y métricas para el panel administrativo.
+    Calcula agregaciones históricas de uso, top equipos, atrasos por carrera y estados.
+    """
+    from datetime import timedelta
+    from django.db.models import Count, Sum
+    from django.db.models.functions import TruncMonth
+
+    # 1. Top equipos más prestados (por cantidad acumulada en detalles)
+    equipos_qs = (
+        DetallePrestamo.objects
+        .values('equipo__id', 'equipo__nombre')
+        .annotate(total_prestado=Sum('cantidad'))
+        .order_by('-total_prestado')[:10]
+    )
+    top_equipos = [
+        {
+            'id': item['equipo__id'],
+            'nombre': item['equipo__nombre'],
+            'total': item['total_prestado'] or 0
+        }
+        for item in equipos_qs
+    ]
+
+    # 2. Atrasos por carrera del estudiante
+    atrasos_qs = (
+        Prestamo.objects
+        .filter(estado='ATRASADO')
+        .exclude(estudiante__carrera__isnull=True)
+        .exclude(estudiante__carrera__exact='')
+        .values('estudiante__carrera')
+        .annotate(total_atrasos=Count('id'))
+        .order_by('-total_atrasos')
+    )
+    atrasos_carrera = [
+        {
+            'carrera': item['estudiante__carrera'],
+            'total': item['total_atrasos']
+        }
+        for item in atrasos_qs
+    ]
+
+    # 3. Préstamos por mes (últimos 6 meses)
+    seis_meses_atras = timezone.now() - timedelta(days=180)
+    prestamos_mes_qs = (
+        Prestamo.objects
+        .filter(fecha_prestamo__gte=seis_meses_atras)
+        .annotate(mes=TruncMonth('fecha_prestamo'))
+        .values('mes')
+        .annotate(total=Count('id'))
+        .order_by('mes')
+    )
+    prestamos_por_mes = [
+        {
+            'mes': item['mes'].strftime('%b %Y') if item['mes'] else '',
+            'total': item['total']
+        }
+        for item in prestamos_mes_qs
+    ]
+
+    # 4. Distribución por estados
+    estados_qs = (
+        Prestamo.objects
+        .values('estado')
+        .annotate(total=Count('id'))
+    )
+    distribucion_estados = {item['estado']: item['total'] for item in estados_qs}
+
+    return Response({
+        'top_equipos': top_equipos,
+        'atrasos_por_carrera': atrasos_carrera,
+        'prestamos_por_mes': prestamos_por_mes,
+        'distribucion_estados': distribucion_estados,
+        'total_prestamos': Prestamo.objects.count(),
+        'total_equipos': Equipo.objects.count(),
+        'total_estudiantes': Estudiante.objects.count(),
+    })
+

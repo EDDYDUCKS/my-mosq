@@ -27,9 +27,13 @@ urlpatterns = [
     # NUEVA RUTA: El enlace directo para descargar el Excel
     path('reportes/excel/', views.exportar_reporte_excel, name='reporte_excel'),
 
+    # NUEVA RUTA: Estadísticas y métricas analíticas para el panel admin
+    path('reportes/estadisticas/', views.estadisticas_dashboard, name='reporte_estadisticas'),
+
     # NUEVA RUTA: Diagnóstico de IP
     path('my-ip/', views.my_ip, name='my_ip'),
 
     # NUEVA RUTA: Monitoreo de salud público
     path('health/', views.health_check, name='health_check'),
-]
+]
+
