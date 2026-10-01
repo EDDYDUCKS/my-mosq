@@ -457,35 +457,15 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         if not request.user.is_staff:
             raise PermissionDenied('Solo administradores pueden procesar préstamos atrasados.')
             
-        hoy = timezone.localdate()
-        
-        # Buscar préstamos ACTIVOS cuya fecha_devolucion (solo fecha) sea menor a hoy
-        # Como fecha_devolucion es DateTimeField, comparamos su fecha.
-        from django.db import transaction
-        
-        prestamos_atrasados = Prestamo.objects.filter(
-            estado='ACTIVO', 
-            fecha_devolucion__date__lt=hoy
+        from .management.commands.procesar_atrasados import ejecutar_procesamiento_atrasados
+        contador, ids = ejecutar_procesamiento_atrasados(
+            usuario_operador=request.user,
+            ip_address=request.META.get('REMOTE_ADDR')
         )
-        
-        contador = 0
-        with transaction.atomic():
-            for prestamo in prestamos_atrasados:
-                prestamo.estado = 'ATRASADO'
-                prestamo.save(update_fields=['estado'])
-                
-                # Crear la sanción automática
-                from .models import Sancion
-                Sancion.objects.create(
-                    estudiante=prestamo.estudiante,
-                    motivo=f'Devolución tardía automática del Ticket #{prestamo.id}',
-                    observaciones='El sistema ha detectado que la fecha límite de devolución ha expirado.',
-                    severidad='restriction',
-                    activa=True
-                )
-                contador += 1
-                
-        return Response({'detail': f'Se procesaron {contador} préstamos atrasados.'})
+        return Response({
+            'detail': f'Se procesaron {contador} préstamos atrasados.',
+            'prestamos_procesados': ids
+        })
 
 
 class SancionViewSet(viewsets.ModelViewSet):
