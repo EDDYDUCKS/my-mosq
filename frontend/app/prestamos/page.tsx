@@ -181,7 +181,7 @@ function PrestamosPageContent() {
                     <EquipmentCardMinimal
                       key={eq.id}
                       equipment={eq as Equipment}
-                      onBorrow={() => handleBorrow(eq)}
+                      onBorrow={(_item, manualChoose) => handleBorrow(eq, manualChoose)}
                     />
                   ))}
                   {!loadingData && groupedEquipment.length === 0 && (

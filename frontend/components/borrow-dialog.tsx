@@ -27,6 +27,12 @@ export function BorrowDialog({ equipment, open, onOpenChange, onAddedItem }: Bor
   const { addToCart } = useCart();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
+  React.useEffect(() => {
+    if (open) {
+      setQuantities({});
+    }
+  }, [open, equipment]);
+
   const handleAdjust = (variantId: string, current: number, delta: number, max: number) => {
     const next = Math.max(0, Math.min(current + delta, max));
     setQuantities(prev => ({ ...prev, [variantId]: next }));
