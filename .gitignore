@@ -15,3 +15,7 @@ next.user-config.*
 node_modules/
 .next/
 .DS_Store
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+*$py.class
