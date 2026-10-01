@@ -179,6 +179,13 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
               <LogOut className="w-4 h-4" />
               Cerrar Sesión
             </button>
+
+            <div className="pt-3 pb-1 text-center text-[10px] text-muted-foreground/75 leading-tight border-t border-border/50 select-none">
+              <p className="font-semibold text-muted-foreground tracking-wider uppercase">MOSQ · ULSA</p>
+              <p className="mt-1">
+                Desarrollado por <span className="font-semibold text-foreground/80">Eddy Martínez</span> & <span className="font-semibold text-foreground/80">Cristoffer Betancourt</span>
+              </p>
+            </div>
           </div>
         </div>
       </aside>
@@ -244,6 +251,13 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
                 <LogOut className="w-5 h-5" />
                 Cerrar Sesión
               </button>
+
+              <div className="pt-3 pb-1 text-center text-[10px] text-muted-foreground/75 leading-tight border-t border-border/50 select-none">
+                <p className="font-semibold text-muted-foreground tracking-wider uppercase">MOSQ · ULSA</p>
+                <p className="mt-1">
+                  Desarrollado por <span className="font-semibold text-foreground/80">Eddy Martínez</span> & <span className="font-semibold text-foreground/80">Cristoffer Betancourt</span>
+                </p>
+              </div>
             </div>
           </div>
         </div>

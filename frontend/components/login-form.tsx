@@ -203,9 +203,12 @@ export function LoginForm() {
             </CardContent>
           </Card>
 
-          <p className="text-center text-xs text-white/70 md:text-muted-foreground mt-6 drop-shadow-md md:drop-shadow-none">
-            Universidad Tecnológica La Salle © 2026
-          </p>
+          <div className="text-center text-xs text-white/70 md:text-muted-foreground mt-6 space-y-1">
+            <p className="drop-shadow-md md:drop-shadow-none">Universidad Tecnológica La Salle © 2026</p>
+            <p className="text-[11px] opacity-80 drop-shadow-md md:drop-shadow-none">
+              Sistema MOSQ · Desarrollado por Eddy Martínez y Cristoffer Betancourt
+            </p>
+          </div>
         </div>
       </div>
     </div>

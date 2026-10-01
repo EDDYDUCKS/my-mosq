@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import {
   BarChart3, Package, FileText, AlertTriangle,
-  CheckCircle, XCircle, QrCode, Plus, Clock, CalendarClock, Search, History
+  CheckCircle, XCircle, QrCode, Plus, Clock, CalendarClock, Search, History,
+  CheckCircle2, X
 } from 'lucide-react';
 import { useAutoRefresh } from '@/lib/use-auto-refresh';
 import { SpecialLoanDialog } from '@/components/special-loan-dialog';
@@ -475,6 +476,69 @@ export default function AdminLoansPage() {
             </div>
           </div>
 
+          {/* ── Métricas Rápidas (KPIs de Préstamos) ── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <Card className="rounded-2xl border-border bg-card/70 shadow-xs">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Pendientes de Entrega</span>
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{countPending}</span>
+                  <span className="text-xs text-muted-foreground">solicitudes</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card/70 shadow-xs">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Préstamos Activos</span>
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{countApproved}</span>
+                  <span className="text-xs text-muted-foreground">en uso a tiempo</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card/70 shadow-xs">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Atrasados / Vencidos</span>
+                  <div className="p-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-red-600 dark:text-red-400">{countOverdue}</span>
+                  <span className="text-xs text-muted-foreground">fuera de plazo</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card/70 shadow-xs">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Devueltos</span>
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{countReturned}</span>
+                  <span className="text-xs text-muted-foreground">completados</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* ── Barra de búsqueda y Pestañas de Filtro por Estado ── */}
           <div className="mb-6 space-y-4">
             {/* Buscador */}
@@ -485,8 +549,17 @@ export default function AdminLoansPage() {
                 placeholder="Buscar por estudiante, equipo o N° de ticket..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#1b4931]"
+                className="w-full pl-9 pr-9 py-2 bg-background border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#1b4931]"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Pestañas de Estado */}
