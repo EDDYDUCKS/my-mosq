@@ -170,21 +170,23 @@ export default function StudentLoansPage() {
               onClick={() => setStatusFilter('pending')}
               className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 statusFilter === 'pending'
-                  ? 'bg-yellow-500 text-white font-bold shadow-sm'
-                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300'
+                  ? 'bg-amber-500 text-white font-bold shadow-sm'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
               }`}
             >
-              🟡 Pendientes <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countPending}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Pendientes <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countPending}</span>
             </button>
             <button
               onClick={() => setStatusFilter('approved')}
               className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 statusFilter === 'approved'
-                  ? 'bg-green-600 text-white font-bold shadow-sm'
-                  : 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300'
+                  ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
               }`}
             >
-              🟢 Aprobados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countApproved}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Aprobados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countApproved}</span>
             </button>
             <button
               onClick={() => setStatusFilter('returned')}
@@ -194,7 +196,8 @@ export default function StudentLoansPage() {
                   : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
               }`}
             >
-              🔵 Devueltos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countReturned}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              Devueltos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countReturned}</span>
             </button>
             {countRejected > 0 && (
               <button
@@ -205,7 +208,8 @@ export default function StudentLoansPage() {
                     : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'
                 }`}
               >
-                🔴 Rechazados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countRejected}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                Rechazados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countRejected}</span>
               </button>
             )}
           </div>
@@ -275,8 +279,18 @@ export default function StudentLoansPage() {
                               }`}>{formatDateTime(new Date(request.dueDate), false)}</p>
                             </div>
                           </div>
-                          {isOverdue  && <span className="text-xs font-bold text-red-600 bg-red-100 dark:bg-red-900/60 px-2 py-0.5 rounded-full">🔴 VENCIDO</span>}
-                          {isDueToday && <span className="text-xs font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/60 px-2 py-0.5 rounded-full">⚠️ HOY</span>}
+                          {isOverdue && (
+                            <span className="text-xs font-bold text-red-700 bg-red-100 dark:bg-red-950 dark:text-red-300 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-800 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                              VENCIDO
+                            </span>
+                          )}
+                          {isDueToday && (
+                            <span className="text-xs font-bold text-amber-700 bg-amber-100 dark:bg-amber-950 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              HOY
+                            </span>
+                          )}
                         </div>
                       </div>
                     );

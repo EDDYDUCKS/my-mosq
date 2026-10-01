@@ -49,19 +49,49 @@ export default function AdminAuditPage() {
   const getActionBadge = (accion: string, display: string) => {
     switch (accion) {
       case 'APROBAR_PRESTAMO':
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">🟢 {display}</Badge>;
+        return (
+          <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 gap-1.5 border-emerald-200 dark:border-emerald-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+            {display}
+          </Badge>
+        );
       case 'RECIBIR_PRESTAMO':
-        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">🔵 {display}</Badge>;
+        return (
+          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 gap-1.5 border-blue-200 dark:border-blue-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+            {display}
+          </Badge>
+        );
       case 'RECHAZAR_PRESTAMO':
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">🔴 {display}</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 gap-1.5 border-red-200 dark:border-red-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400" />
+            {display}
+          </Badge>
+        );
       case 'CREAR_EQUIPO':
       case 'EDITAR_EQUIPO':
-        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">📦 {display}</Badge>;
+        return (
+          <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 gap-1.5 border-amber-200 dark:border-amber-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400" />
+            {display}
+          </Badge>
+        );
       case 'ELIMINAR_EQUIPO':
-        return <Badge className="bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-300">🗑️ {display}</Badge>;
+        return (
+          <Badge className="bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 gap-1.5 border-slate-300 dark:border-slate-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-600 dark:bg-slate-400" />
+            {display}
+          </Badge>
+        );
       case 'CREAR_SANCION':
       case 'RESOLVER_SANCION':
-        return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">⚠️ {display}</Badge>;
+        return (
+          <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 gap-1.5 border-purple-200 dark:border-purple-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-600 dark:bg-purple-400" />
+            {display}
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{display}</Badge>;
     }
@@ -141,7 +171,10 @@ export default function AdminAuditPage() {
           {/* Error Alert */}
           {errorMsg && (
             <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 flex items-center justify-between text-sm text-red-700 dark:text-red-300">
-              <span>⚠️ {errorMsg}</span>
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {errorMsg}
+              </span>
               <button
                 onClick={reloadLogs}
                 className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"

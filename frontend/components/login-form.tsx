@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Globe } from 'lucide-react';
+import { AlertCircle, Globe, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { GoogleLogin } from '@react-oauth/google';
@@ -152,9 +152,10 @@ export function LoginForm() {
                       width="350"
                     />
                   </div>
-                  <p className="text-center text-[11px] text-muted-foreground">
-                    💡 <strong>Estudiantes y Docentes:</strong> Inicien sesión con su correo Google de ULSA
-                  </p>
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground mt-2">
+                    <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span><strong>Estudiantes y Docentes:</strong> Inicien sesión con su correo institucional ULSA</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground my-3">

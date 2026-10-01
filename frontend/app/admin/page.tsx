@@ -141,7 +141,9 @@ export default function AdminDashboard() {
             <div className="bg-amber-50 dark:bg-amber-950 border-b-2 border-amber-300 dark:border-amber-700 px-4 py-3">
               <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">📊</span>
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 border border-amber-300 dark:border-amber-700 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-5 h-5 text-amber-700 dark:text-amber-300" />
+                  </div>
                   <div>
                     <p className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
                       Recordatorio: Descarga el reporte de {prevMonthLabel}

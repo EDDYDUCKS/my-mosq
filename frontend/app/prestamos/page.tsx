@@ -104,9 +104,9 @@ function PrestamosPageContent() {
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-mobile-nav">
             {!warehouseStatus.isOpen && (
               <div className="mb-6 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 rounded-xl p-4 flex items-center gap-3 text-amber-900 dark:text-amber-200 shadow-sm">
-                <Clock className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 animate-pulse" />
+                <Clock className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div className="text-xs sm:text-sm">
-                  <p className="font-bold">🕒 La Bodega de Deportes está cerrada en este momento</p>
+                  <p className="font-bold">Bodega de Deportes cerrada temporalmente</p>
                   <p className="opacity-90">Horario oficial de atención: <strong>{warehouseStatus.scheduleText}</strong>. Puedes seleccionar equipos en el carrito, pero la entrega se procesará en horario laboral.</p>
                 </div>
               </div>

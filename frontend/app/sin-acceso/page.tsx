@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { WifiOff, Lock, ArrowLeft, KeyRound } from 'lucide-react';
+import { WifiOff, Lock, ArrowLeft, KeyRound, CheckCircle2, Check } from 'lucide-react';
 
 // ── Configuración de la puerta secreta ──────────────────────────────────────
 const SECRET_TAPS   = 6;          // cuántos toques necesarios
@@ -120,8 +120,8 @@ export default function SinAccesoPage() {
             {success ? (
               /* Éxito */
               <div className="space-y-3">
-                <div className="text-5xl">✅</div>
-                <p className="text-green-400 font-bold text-lg">Acceso concedido</p>
+                <CheckCircle2 className="w-14 h-14 text-emerald-400 mx-auto animate-bounce" />
+                <p className="text-emerald-400 font-bold text-lg">Acceso concedido</p>
                 <p className="text-white/50 text-sm">Redirigiendo…</p>
               </div>
             ) : (
@@ -173,9 +173,9 @@ export default function SinAccesoPage() {
                   <button
                     onClick={handlePinSubmit}
                     disabled={pin.length < 4}
-                    className="h-12 rounded-xl bg-yellow-500 hover:bg-yellow-400 disabled:opacity-30 disabled:cursor-not-allowed text-black font-bold text-lg transition-colors"
+                    className="h-12 rounded-xl bg-yellow-500 hover:bg-yellow-400 disabled:opacity-30 disabled:cursor-not-allowed text-black font-bold text-lg transition-colors flex items-center justify-center"
                   >
-                    ✓
+                    <Check className="w-5 h-5 stroke-[2.5]" />
                   </button>
                 </div>
 

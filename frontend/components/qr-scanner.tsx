@@ -73,14 +73,14 @@ export function QrScanner({ onReturnScanned }: QrScannerProps = {}) {
 
             if (mode === 'approve') {
               await updateLoanStatus(loanId, 'ACTIVO');
-              setResult({ status: 'success', message: `✅ Préstamo #${loanId} aprobado. Equipo entregado.` });
+              setResult({ status: 'success', message: `Préstamo #${loanId} aprobado. Equipo entregado exitosamente.` });
             } else {
               if (onReturnScanned) {
                 onReturnScanned(loanId);
-                setResult({ status: 'success', message: `✅ Código QR capturado para devolución.` });
+                setResult({ status: 'success', message: `Código QR verificado para devolución.` });
               } else {
                 await markLoanAsReturned(loanId);
-                setResult({ status: 'success', message: `✅ Préstamo #${loanId} marcado como devuelto.` });
+                setResult({ status: 'success', message: `Préstamo #${loanId} registrado como devuelto.` });
               }
             }
             // Bip de confirmación
@@ -166,7 +166,7 @@ export function QrScanner({ onReturnScanned }: QrScannerProps = {}) {
         ) : active ? (
           <><CameraOff className="w-4 h-4" /> Detener Cámara</>
         ) : (
-          <><Camera className="w-4 h-4" /> Activar Cámara 📷</>
+          <><Camera className="w-4 h-4" /> Activar Cámara</>
         )}
       </Button>
 

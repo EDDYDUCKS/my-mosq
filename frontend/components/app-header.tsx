@@ -44,48 +44,55 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-[#2d5a27] to-[#1e3a1a] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-        <div className="w-full px-3 sm:px-4 lg:px-6 h-16 sm:h-24 flex items-center justify-between gap-3 sm:gap-4">
+      <header className="sticky top-0 z-50 bg-[#0f2537]/90 backdrop-blur-md text-white border-b border-white/10 shadow-sm transition-all">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Solo mostramos la hamburguesa a los admins en móvil */}
+            {/* Botón menú móvil para administradores */}
             {user?.role !== 'student' && (
               <button
                 onClick={() => setMobileMenuOpen((prev) => !prev)}
-                className="p-2 rounded-lg hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50 lg:hidden"
+                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50 lg:hidden transition-colors"
                 aria-label="Abrir menú"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             )}
 
-            <div className="hidden sm:flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur-md">
-              <Image
-                src="/ESTRELLASALLE.png"
-                alt="Estrella La Salle"
-                width={26}
-                height={26}
-                className="h-6 w-6 object-contain"
-                style={{ filter: 'brightness(0) invert(1)' }}
-                priority
-              />
-            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 shadow-inner backdrop-blur-sm">
+                <Image
+                  src="/ESTRELLASALLE.png"
+                  alt="Estrella La Salle"
+                  width={24}
+                  height={24}
+                  className="h-5 w-5 object-contain"
+                  style={{ filter: 'brightness(0) invert(1)' }}
+                  priority
+                />
+              </div>
 
-            <div>
-              <h1 className="text-xl sm:text-3xl font-black leading-none tracking-tight">MOSQ</h1>
-              <p className="text-xs sm:text-sm text-white/75 truncate max-w-[150px] sm:max-w-none">{title}</p>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-black tracking-wider leading-none text-white">MOSQ</span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ULSA</span>
+                </div>
+                <p className="text-[11px] font-medium text-white/60 truncate max-w-[150px] sm:max-w-none mt-0.5">
+                  {title}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.14)] backdrop-blur-md">
+          <div className="flex items-center gap-2 sm:gap-3">
             {showCartShortcut && (
               <Link
                 href="/prestamos?view=cart"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/90 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
                 aria-label="Abrir carrito"
               >
-                <ShoppingCart className="w-5 h-5" />
+                <ShoppingCart className="w-4 h-4" />
                 {cart.length > 0 && (
-                  <span className="absolute right-0 top-0 flex h-5 min-w-5 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold leading-none text-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0f2537]">
                     {cart.length > 9 ? '9+' : cart.length}
                   </span>
                 )}
@@ -94,71 +101,80 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
 
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/80 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
               aria-label="Cambiar tema"
             >
-              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Logout para móvil visible siempre en el header */}
+            {/* Logout móvil siempre accesible en el header */}
             <button
               onClick={handleLogout}
-              className="flex lg:hidden h-9 w-9 items-center justify-center rounded-full hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50 text-red-300 hover:text-red-400 transition-colors"
+              className="flex lg:hidden h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:text-red-300 hover:bg-red-500/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
               aria-label="Cerrar sesión"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
             </button>
 
-            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-white/15 text-sm font-bold">
-              {(user?.name || 'U').charAt(0).toUpperCase()}
-            </div>
+            <div className="hidden sm:flex items-center gap-2.5 pl-2 ml-1 border-l border-white/10">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-xs font-bold text-white shadow-inner">
+                {(user?.name || 'U').charAt(0).toUpperCase()}
+              </div>
 
-            <div className="hidden sm:flex flex-col text-left leading-tight">
-              <span className="text-base font-semibold">{user?.name}</span>
-              <span className="text-xs text-white/75 capitalize">{user?.role}</span>
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-xs font-semibold text-white/95">{user?.name}</span>
+                <span className="text-[10px] text-white/60 uppercase tracking-wider">{user?.role}</span>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex fixed left-0 top-24 h-[calc(100vh-6rem)] w-72 border-r border-border bg-background text-foreground z-40">
-        <div className="h-full flex flex-col">
-          <div className="px-6 pb-4">
-            <p className="text-sm font-semibold text-muted-foreground">Navegación</p>
+      <aside className="hidden lg:flex fixed left-0 top-16 h-[calc(100vh-4rem)] w-72 border-r border-border bg-card/60 backdrop-blur-xl text-foreground z-40">
+        <div className="h-full flex flex-col justify-between w-full">
+          <div className="p-4 space-y-4">
+            <div className="px-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">Navegación</p>
+            </div>
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      isActive
+                        ? 'bg-[#1b4931] text-white shadow-sm shadow-[#1b4931]/20 font-semibold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
+                    }`}
+                  >
+                    <span className={isActive ? 'text-white' : 'text-muted-foreground'}>
+                      {item.icon}
+                    </span>
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
-          <nav className="flex-1 px-3 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  pathname === item.href
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-foreground hover:bg-muted'
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            ))}
-          </nav>
 
-          <div className="px-4 py-4 border-t border-border">
+          <div className="p-4 border-t border-border bg-muted/10 space-y-2">
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+              className="w-full flex items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium hover:bg-muted transition-colors text-foreground"
             >
-              <span className="flex items-center gap-2">
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span className="flex items-center gap-2.5">
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-600" />}
                 {theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
               </span>
-              <span className="text-xs text-muted-foreground uppercase">{theme}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase">{theme}</span>
             </button>
 
             <button
               onClick={handleLogout}
-              className="mt-3 w-full flex items-center justify-center gap-2 rounded-lg border border-destructive/30 bg-destructive/15 px-3 py-2 text-sm font-medium text-destructive shadow-sm hover:bg-destructive/25"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3.5 py-2.5 text-sm font-semibold text-destructive shadow-sm hover:bg-destructive/20 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Cerrar Sesión
@@ -168,7 +184,7 @@ export function AppHeader({ title, navItems }: AppHeaderProps) {
       </aside>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-x-0 bottom-0 top-16 sm:top-24 z-50 flex lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 top-16 z-50 flex lg:hidden">
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setMobileMenuOpen(false)}

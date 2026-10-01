@@ -32,6 +32,7 @@ import {
   ChevronDown,
   ChevronRight,
   Search,
+  Wrench,
 } from 'lucide-react';
 
 // ── Tipo para agrupar equipos del mismo nombre ──────────────────────────────
@@ -321,15 +322,20 @@ export default function AdminEquipmentPage() {
                           </div>
                           <div className="mt-4">
                             <div className="flex items-center justify-between gap-1 flex-wrap">
-                              <div className="text-xs text-muted-foreground">
-                                Condición: <span className="font-semibold capitalize">
-                                  {single.condition === 'maintenance' ? '🛠️ Mantenimiento' : single.condition}
+                              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                Condición: <span className="font-semibold capitalize flex items-center gap-1">
+                                  {single.condition === 'maintenance' ? (
+                                    <>
+                                      <Wrench className="w-3 h-3 text-amber-500" />
+                                      Mantenimiento
+                                    </>
+                                  ) : single.condition}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
                                 {(single.maintenance || 0) > 0 && (
-                                  <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">
-                                    🛠️ {single.maintenance}
+                                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 gap-1 text-xs border-amber-200 dark:border-amber-800">
+                                    <Wrench className="w-3 h-3" /> {single.maintenance}
                                   </Badge>
                                 )}
                                 <Badge className={stockBadgeClass(single.available, single.total)}>
@@ -412,8 +418,8 @@ export default function AdminEquipmentPage() {
 
                           <div className="flex items-center gap-1.5 shrink-0">
                             {(v.maintenance || 0) > 0 && (
-                              <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 text-xs">
-                                🛠️ {v.maintenance}
+                              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-xs gap-1 border-amber-200 dark:border-amber-800">
+                                <Wrench className="w-3 h-3" /> {v.maintenance}
                               </Badge>
                             )}
                             <Badge className={`${stockBadgeClass(v.available, v.total)} text-xs`}>
@@ -603,7 +609,10 @@ export default function AdminEquipmentPage() {
 
           <DialogFooter className="gap-2 flex-col items-stretch sm:flex-row sm:items-center">
             {saveError && (
-              <p className="text-sm text-destructive flex-1 text-left">⚠️ {saveError}</p>
+              <p className="text-sm text-destructive flex-1 text-left flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {saveError}
+              </p>
             )}
             <Button variant="outline" onClick={handleDialogClose} disabled={isSaving}>
               Cancelar

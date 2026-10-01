@@ -349,8 +349,18 @@ export default function AdminLoansPage() {
                 </p>
               </div>
             </div>
-            {isOverdue  && <span className="text-xs font-bold text-red-600 bg-red-100 dark:bg-red-900/60 px-2 py-0.5 rounded-full">🔴 VENCIDO</span>}
-            {isDueToday && <span className="text-xs font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/60 px-2 py-0.5 rounded-full">⚠️ HOY</span>}
+            {isOverdue && (
+              <span className="text-xs font-bold text-red-700 bg-red-100 dark:bg-red-950 dark:text-red-300 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-800 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                VENCIDO
+              </span>
+            )}
+            {isDueToday && (
+              <span className="text-xs font-bold text-amber-700 bg-amber-100 dark:bg-amber-950 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                HOY
+              </span>
+            )}
           </div>
 
           {/* ── Entregado / Recibido — solo si tienen valor ── */}
@@ -458,9 +468,9 @@ export default function AdminLoansPage() {
               </Button>
               <Button
                 onClick={() => setScannerOpen(true)}
-                className="bg-green-700 hover:bg-green-800 text-white gap-2"
+                className="bg-[#1b4931] hover:bg-[#163c28] text-white gap-2 shadow-sm"
               >
-                <QrCode className="w-4 h-4" /> Escanear QR 📷
+                <QrCode className="w-4 h-4" /> Escanear QR
               </Button>
             </div>
           </div>
@@ -475,7 +485,7 @@ export default function AdminLoansPage() {
                 placeholder="Buscar por estudiante, equipo o N° de ticket..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#1b4931]"
               />
             </div>
 
@@ -496,22 +506,24 @@ export default function AdminLoansPage() {
                 onClick={() => setStatusFilter('pending')}
                 className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   statusFilter === 'pending'
-                    ? 'bg-yellow-500 text-white font-bold shadow-sm'
-                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300 hover:bg-yellow-200'
+                    ? 'bg-amber-500 text-white font-bold shadow-sm'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 hover:bg-amber-200'
                 }`}
               >
-                🟡 Pendientes <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countPending}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                Pendientes <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countPending}</span>
               </button>
 
               <button
                 onClick={() => setStatusFilter('approved')}
                 className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   statusFilter === 'approved'
-                    ? 'bg-green-600 text-white font-bold shadow-sm'
-                    : 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 hover:bg-green-200'
+                    ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-200'
                 }`}
               >
-                🟢 Activos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countApproved}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Activos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countApproved}</span>
               </button>
 
               <button
@@ -522,7 +534,8 @@ export default function AdminLoansPage() {
                     : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 hover:bg-red-200'
                 }`}
               >
-                🔴 Atrasados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countOverdue}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                Atrasados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countOverdue}</span>
               </button>
 
               <button
@@ -533,18 +546,20 @@ export default function AdminLoansPage() {
                     : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 hover:bg-blue-200'
                 }`}
               >
-                🔵 Devueltos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countReturned}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                Devueltos <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countReturned}</span>
               </button>
 
               <button
                 onClick={() => setStatusFilter('rejected')}
                 className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   statusFilter === 'rejected'
-                    ? 'bg-gray-700 text-white font-bold shadow-sm'
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200'
+                    ? 'bg-slate-700 text-white font-bold shadow-sm'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200'
                 }`}
               >
-                ⚪ Rechazados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10">{countRejected}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                Rechazados <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{countRejected}</span>
               </button>
             </div>
           </div>

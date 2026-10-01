@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Info } from 'lucide-react';
 
 interface BorrowDialogProps {
   equipment: (Equipment & { variants?: Equipment[] }) | null;
@@ -117,9 +117,10 @@ export function BorrowDialog({ equipment, open, onOpenChange }: BorrowDialogProp
               ))}
             </div>
 
-            <p className="text-xs text-muted-foreground bg-muted rounded-lg p-3">
-              💡 La fecha de devolución y notas se configuran al momento de enviar la solicitud desde el carrito.
-            </p>
+            <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/60 rounded-xl p-3 border border-border">
+              <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <span>La fecha de devolución y notas se configuran al momento de enviar la solicitud desde el carrito.</span>
+            </div>
 
             <DialogFooter className="gap-2 pt-2">
               <Button

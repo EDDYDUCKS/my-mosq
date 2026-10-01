@@ -137,23 +137,26 @@ export default function StudentHome() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-mobile-nav space-y-6 sm:space-y-8">
 
           {/* ── BIENVENIDA ── */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 via-green-600 to-emerald-500 p-5 sm:p-8 text-white shadow-lg">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f2537] via-[#163854] to-[#1b4931] p-6 sm:p-8 text-white shadow-md border border-white/10">
             <div className="relative z-10">
-              <p className="text-green-200 text-xs sm:text-sm font-medium mb-1">Bienvenido de vuelta 👋</p>
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">{firstName}</h1>
-              <p className="mt-1 sm:mt-2 text-green-100 max-w-md text-sm sm:text-base">
-                Aquí puedes ver el resumen de tus préstamos y estadísticas personales.
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <p className="text-emerald-300 text-xs sm:text-sm font-semibold tracking-wide uppercase">Bienestar Estudiantil · ULSA</p>
+              </div>
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Hola, {firstName}</h1>
+              <p className="mt-1 sm:mt-2 text-slate-200/90 max-w-md text-sm sm:text-base">
+                Monitorea el estado de tus solicitudes activas, fechas de entrega y estadísticas personales.
               </p>
               <Link
                 href="/prestamos"
-                className="mt-3 sm:mt-4 inline-flex items-center gap-2 bg-white text-green-700 font-semibold text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl hover:bg-green-50 transition-colors shadow"
+                className="mt-4 inline-flex items-center gap-2 bg-white text-[#0f2537] font-bold text-sm px-4 sm:px-5 py-2.5 rounded-xl hover:bg-slate-100 transition-colors shadow-sm"
               >
-                <Package className="w-4 h-4" /> Ir al Catálogo
+                <Package className="w-4 h-4 text-[#1b4931]" /> Ir al Catálogo
               </Link>
             </div>
-            {/* decoración */}
-            <div className="absolute -right-12 -top-12 w-36 sm:w-56 h-36 sm:h-56 bg-white/10 rounded-full" />
-            <div className="absolute -right-4 -bottom-8 w-24 sm:w-36 h-24 sm:h-36 bg-white/10 rounded-full" />
+            {/* decoración sutil institucional */}
+            <div className="absolute -right-12 -top-12 w-48 sm:w-64 h-48 sm:h-64 bg-emerald-500/10 rounded-full blur-2xl" />
+            <div className="absolute right-12 bottom-0 w-32 sm:w-48 h-32 sm:h-48 bg-[#b89535]/15 rounded-full blur-xl" />
           </div>
 
           {/* ── ALERTAS DE SANCIONES ── */}
@@ -215,10 +218,15 @@ export default function StudentHome() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className={`text-sm font-medium mb-3 ${urgent ? 'text-red-600' : 'text-muted-foreground'}`}>
-                          {urgent
-                            ? '⚠️ ¡Fecha de devolución vencida!'
-                            : `Devolver antes del ${g.dueDate.toLocaleDateString('es-NI')} (${diff} día${diff === 1 ? '' : 's'})`}
+                        <div className={`text-sm font-medium mb-3 flex items-center gap-2 ${urgent ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}`}>
+                          {urgent ? (
+                            <>
+                              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                              <span>Fecha de devolución vencida</span>
+                            </>
+                          ) : (
+                            `Devolver antes del ${g.dueDate.toLocaleDateString('es-NI')} (${diff} día${diff === 1 ? '' : 's'})`
+                          )}
                         </div>
                         {/* Solo mostrar botón devolver si está ACTIVO o ATRASADO */}
                         {(g.status === 'ACTIVO' || g.status === 'ATRASADO') && (
