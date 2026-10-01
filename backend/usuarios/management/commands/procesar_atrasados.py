@@ -12,13 +12,54 @@ from usuarios.models import Prestamo, Sancion, BitacoraAccion
 from usuarios.utils import enviar_notificacion_email
 
 
+def ejecutar_recordatorios_preventivos():
+    """
+    Envia recordatorios preventivos a prestamos activos que vencen en las proximas 2 horas.
+    Retorna la cantidad de recordatorios enviados.
+    """
+    ahora = timezone.now()
+    limite_recordatorio = ahora + timedelta(hours=2)
+    prestamos_proximos = (
+        Prestamo.objects
+        .filter(
+            estado='ACTIVO',
+            fecha_devolucion__isnull=False,
+            fecha_devolucion__gte=ahora,
+            fecha_devolucion__lte=limite_recordatorio,
+            recordatorio_enviado=False
+        )
+        .select_related('estudiante')
+    )
+
+    recordatorios_enviados = []
+    for prestamo in prestamos_proximos:
+        if prestamo.estudiante and prestamo.estudiante.email:
+            hora_str = prestamo.fecha_devolucion.strftime('%H:%M')
+            enviar_notificacion_email(
+                destinatario_email=prestamo.estudiante.email,
+                asunto=f"[RECORDATORIO] Tu préstamo #{prestamo.id} vence hoy - ULSA",
+                mensaje_texto=(
+                    f"Hola {prestamo.estudiante.first_name or prestamo.estudiante.username},\n\n"
+                    f"Te recordamos que tu préstamo #{prestamo.id} tiene como hora límite de devolución "
+                    f"hoy a las {hora_str}.\n"
+                    f"Por favor entrégalo a tiempo en la bodega para evitar sanciones en tu cuenta.\n\n"
+                    f"Bienestar Estudiantil ULSA"
+                )
+            )
+        prestamo.recordatorio_enviado = True
+        prestamo.save(update_fields=['recordatorio_enviado'])
+        recordatorios_enviados.append(prestamo.id)
+
+    return len(recordatorios_enviados)
+
+
 def ejecutar_procesamiento_atrasados(usuario_operador=None, ip_address=None):
     """
     Funcion reutilizable tanto por el management command como por la API REST.
     1. Busca prestamos en estado ACTIVO cuya fecha_devolucion haya vencido (fecha_devolucion < ahora),
        los pasa a estado ATRASADO, genera la sancion automatica y registra en auditoria.
     2. Envia recordatorios preventivos a prestamos activos que vencen en las proximas 2 horas.
-    Retorna una tupla (contador_atrasados, ids_atrasados, contador_recordatorios).
+    Retorna una tupla (contador_atrasados, ids_atrasados).
     """
     ahora = timezone.now()
 
@@ -79,40 +120,10 @@ def ejecutar_procesamiento_atrasados(usuario_operador=None, ip_address=None):
 
             procesados.append(prestamo.id)
 
-    # 2. Recordatorios preventivos antes de la hora limite (en las proximas 2 horas)
-    limite_recordatorio = ahora + timedelta(hours=2)
-    prestamos_proximos = (
-        Prestamo.objects
-        .filter(
-            estado='ACTIVO',
-            fecha_devolucion__isnull=False,
-            fecha_devolucion__gte=ahora,
-            fecha_devolucion__lte=limite_recordatorio,
-            recordatorio_enviado=False
-        )
-        .select_related('estudiante')
-    )
+    # 2. Disparar recordatorios preventivos
+    ejecutar_recordatorios_preventivos()
 
-    recordatorios_enviados = []
-    for prestamo in prestamos_proximos:
-        if prestamo.estudiante and prestamo.estudiante.email:
-            hora_str = prestamo.fecha_devolucion.strftime('%H:%M')
-            enviar_notificacion_email(
-                destinatario_email=prestamo.estudiante.email,
-                asunto=f"[RECORDATORIO] Tu préstamo #{prestamo.id} vence hoy - ULSA",
-                mensaje_texto=(
-                    f"Hola {prestamo.estudiante.first_name or prestamo.estudiante.username},\n\n"
-                    f"Te recordamos que tu préstamo #{prestamo.id} tiene como hora límite de devolución "
-                    f"hoy a las {hora_str}.\n"
-                    f"Por favor entrégalo a tiempo en la bodega para evitar sanciones en tu cuenta.\n\n"
-                    f"Bienestar Estudiantil ULSA"
-                )
-            )
-        prestamo.recordatorio_enviado = True
-        prestamo.save(update_fields=['recordatorio_enviado'])
-        recordatorios_enviados.append(prestamo.id)
-
-    return len(procesados), procesados, len(recordatorios_enviados)
+    return len(procesados), procesados
 
 
 class Command(BaseCommand):
@@ -120,13 +131,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write("Buscando prestamos activos vencidos y proximos a vencer...")
-        total_atrasados, ids, total_recordatorios = ejecutar_procesamiento_atrasados()
+        total_atrasados, ids = ejecutar_procesamiento_atrasados()
         if total_atrasados > 0:
             self.stdout.write(self.style.SUCCESS(f"Se procesaron {total_atrasados} prestamos atrasados: {ids}"))
         else:
             self.stdout.write(self.style.SUCCESS("No se encontraron prestamos activos vencidos."))
-
-        if total_recordatorios > 0:
-            self.stdout.write(self.style.SUCCESS(f"Se enviaron {total_recordatorios} recordatorios preventivos."))
-        else:
-            self.stdout.write(self.style.SUCCESS("No hubo recordatorios preventivos pendientes de envio."))

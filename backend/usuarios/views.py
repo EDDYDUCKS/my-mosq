@@ -25,7 +25,8 @@ class ExcelBinaryRenderer(BaseRenderer):
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
-from .models import Estudiante, Equipo, Prestamo, Sancion, BitacoraAccion
+from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion
+
 from .serializers import EstudianteSerializer, EquipoSerializer, PrestamoSerializer, SancionSerializer, BitacoraAccionSerializer
 from .pagination import StandardResultsSetPagination
 from .utils import registrar_auditoria, enviar_notificacion_email
@@ -493,18 +494,16 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Solo administradores pueden procesar préstamos atrasados.')
             
         from .management.commands.procesar_atrasados import ejecutar_procesamiento_atrasados
-        resultado = ejecutar_procesamiento_atrasados(
+        contador, ids = ejecutar_procesamiento_atrasados(
             usuario_operador=request.user,
             ip_address=request.META.get('REMOTE_ADDR')
         )
-        contador = resultado[0]
-        ids = resultado[1]
-        recordatorios = resultado[2] if len(resultado) > 2 else 0
         return Response({
-            'detail': f'Se procesaron {contador} préstamos atrasados y {recordatorios} recordatorios preventivos.',
+            'detail': f'Se procesaron {contador} préstamos atrasados.',
             'prestamos_procesados': ids,
-            'recordatorios_enviados': recordatorios
         })
+
+
 
     @action(detail=False, methods=['post'], url_path='validar-qr')
     def validar_qr(self, request):
