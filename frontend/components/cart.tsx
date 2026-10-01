@@ -76,9 +76,8 @@ export const Cart: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Aseguramos que la fecha se envíe como medianoche hora local de Nicaragua
-      // agregando T23:59:00 para que Django la guarde como el día correcto
-      const fechaDevolucionISO = `${dueDate}T23:59:00`;
+      // Aseguramos que la fecha se envíe a las 19:00:00 hora local de Managua (cierre de bodega)
+      const fechaDevolucionISO = `${dueDate}T19:00:00`;
       const { id } = await createLoan({
         estudiante: Number(user.id),
         fecha_devolucion: fechaDevolucionISO,
@@ -171,7 +170,7 @@ export const Cart: React.FC = () => {
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Puedes devolver hoy o mañana como máximo
+                Puedes devolver hoy o mañana como máximo (hora límite: 7:00 PM)
               </p>
             </div>
 

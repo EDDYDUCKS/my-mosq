@@ -15,6 +15,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.utils import timezone
+from datetime import datetime, time
 
 class ExcelBinaryRenderer(BaseRenderer):
     media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -248,11 +249,25 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         if es_estudiante and (not self.request.user.carnet or not self.request.user.carrera):
             raise PermissionDenied('Debes completar tu perfil (carnet y carrera) antes de solicitar equipos.')
 
-        # La fecha/hora limite de devolución se programa para el MISMO día a las 19:00:00 (Cierre de Bodega)
+        # La fecha/hora límite de devolución se programa para las 19:00:00 (Cierre de Bodega)
+        # del día seleccionado por el estudiante (o del día de hoy si no se especificó).
         nicaragua_tz = zoneinfo.ZoneInfo('America/Managua')
-        hoy_cierre = timezone.now().astimezone(nicaragua_tz).replace(hour=19, minute=0, second=0, microsecond=0)
+        fecha_req = serializer.validated_data.get('fecha_devolucion')
+        if fecha_req:
+            fecha_local = fecha_req.astimezone(nicaragua_tz) if timezone.is_aware(fecha_req) else fecha_req
+            target_date = fecha_local.date() if hasattr(fecha_local, 'date') else fecha_local
+            fecha_cierre = timezone.make_aware(
+                datetime.combine(target_date, time(19, 0, 0)),
+                nicaragua_tz
+            )
+        else:
+            hoy = timezone.localdate()
+            fecha_cierre = timezone.make_aware(
+                datetime.combine(hoy, time(19, 0, 0)),
+                nicaragua_tz
+            )
 
-        serializer.save(estado='PENDIENTE', fecha_devolucion=hoy_cierre)
+        serializer.save(estado='PENDIENTE', fecha_devolucion=fecha_cierre)
 
     def perform_update(self, serializer):
         estado_actual = serializer.instance.estado
