@@ -339,10 +339,16 @@ class PrestamoViewSet(viewsets.ModelViewSet):
                 descripcion=f"Préstamo #{p_inst.id} APROBADO/ENTREGADO a {p_inst.estudiante.username}",
                 ip_address=self.request
             )
+            deadline_str = p_inst.fecha_devolucion.strftime('%d/%m/%Y a las %H:%M') if p_inst.fecha_devolucion else 'las 19:00'
             enviar_notificacion_email(
                 destinatario_email=p_inst.estudiante.email,
                 asunto=f"Préstamo Aprobado #{p_inst.id} - ULSA",
-                mensaje_texto=f"Hola {p_inst.estudiante.first_name}, tu solicitud de préstamo #{p_inst.id} ha sido APROBADA. Puedes retirar tu equipo en la bodega de deportes."
+                mensaje_texto=(
+                    f"Hola {p_inst.estudiante.first_name},\n\n"
+                    f"Tu solicitud de préstamo #{p_inst.id} ha sido APROBADA. Puedes retirar tu equipo en la bodega de deportes.\n"
+                    f"Hora límite de devolución: {deadline_str}.\n\n"
+                    f"Bienestar Estudiantil ULSA"
+                )
             )
 
         if nuevo_estado == 'DEVUELTO' and estado_actual != 'DEVUELTO':
@@ -350,17 +356,34 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             save_kwargs['fecha_recepcion'] = timezone.now()
             p_inst = serializer.instance
             nombre_target = p_inst.solicitante_externo or p_inst.estudiante.username
+
+            estado_dev = self.request.data.get('estado_devolucion')
+            obs_dev = self.request.data.get('observaciones_devolucion')
+            if estado_dev:
+                save_kwargs['estado_devolucion'] = estado_dev
+            if obs_dev:
+                save_kwargs['observaciones_devolucion'] = obs_dev
+            if 'foto_devolucion' in self.request.FILES:
+                save_kwargs['foto_devolucion'] = self.request.FILES['foto_devolucion']
+
+            desc_auditoria = f"Préstamo #{p_inst.id} RECIBIDO (Devuelto) de {nombre_target} [Estado: {estado_dev or 'BUENO'}]"
             registrar_auditoria(
                 usuario=self.request.user,
                 accion='RECIBIR_PRESTAMO',
-                descripcion=f"Préstamo #{p_inst.id} RECIBIDO (Devuelto) de {nombre_target}",
+                descripcion=desc_auditoria,
                 ip_address=self.request
             )
             enviar_notificacion_email(
                 destinatario_email=p_inst.estudiante.email,
                 asunto=f"Constancia de Devolución Préstamo #{p_inst.id} - ULSA",
-                mensaje_texto=f"Hola {p_inst.estudiante.first_name}, tu préstamo #{p_inst.id} ha sido entregado en bodega y marcado como DEVUELTO exitosamente."
+                mensaje_texto=(
+                    f"Hola {p_inst.estudiante.first_name},\n\n"
+                    f"Tu préstamo #{p_inst.id} ha sido entregado en bodega y marcado como DEVUELTO exitosamente.\n"
+                    f"Estado reportado: {estado_dev or 'Buen Estado'}.\n\n"
+                    f"Bienestar Estudiantil ULSA"
+                )
             )
+
         elif estado_actual == 'DEVUELTO' and nuevo_estado != 'DEVUELTO':
             save_kwargs['recibido_por'] = None
             save_kwargs['fecha_recepcion'] = None
@@ -470,14 +493,19 @@ class PrestamoViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Solo administradores pueden procesar préstamos atrasados.')
             
         from .management.commands.procesar_atrasados import ejecutar_procesamiento_atrasados
-        contador, ids = ejecutar_procesamiento_atrasados(
+        resultado = ejecutar_procesamiento_atrasados(
             usuario_operador=request.user,
             ip_address=request.META.get('REMOTE_ADDR')
         )
+        contador = resultado[0]
+        ids = resultado[1]
+        recordatorios = resultado[2] if len(resultado) > 2 else 0
         return Response({
-            'detail': f'Se procesaron {contador} préstamos atrasados.',
-            'prestamos_procesados': ids
+            'detail': f'Se procesaron {contador} préstamos atrasados y {recordatorios} recordatorios preventivos.',
+            'prestamos_procesados': ids,
+            'recordatorios_enviados': recordatorios
         })
+
 
 
 class SancionViewSet(viewsets.ModelViewSet):
