@@ -1,12 +1,24 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion
+from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion, Carrera
+
+# --- TRADUCTOR DE CARRERAS (OFERTA ACADÉMICA DINÁMICA) ---
+class CarreraSerializer(serializers.ModelSerializer):
+    facultad_display = serializers.CharField(source='get_facultad_display', read_only=True)
+    activa = serializers.BooleanField(default=True)
+
+    class Meta:
+        model = Carrera
+        fields = ['id', 'codigo', 'nombre', 'facultad', 'facultad_display', 'activa', 'fecha_creacion']
+
 
 # --- TRADUCTOR DE ESTUDIANTES ---
 class EstudianteSerializer(serializers.ModelSerializer):
+    carrera_nombre = serializers.CharField(source='get_carrera_display_nombre', read_only=True)
+
     class Meta:
         model = Estudiante
-        fields = ['id', 'first_name', 'last_name', 'username', 'email', 'carnet', 'carrera', 'ano_cursado', 'sancionado']
+        fields = ['id', 'first_name', 'last_name', 'username', 'email', 'carnet', 'carrera', 'carrera_nombre', 'ano_cursado', 'sancionado']
 
     def validate_email(self, value):
         dominios_permitidos = ['@ulsa.edu.ni', '@est.ulsa.edu.ni', '@ac.ulsa.edu.ni']

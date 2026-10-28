@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { completarPerfilApi } from '@/lib/api-client';
+import { completarPerfilApi, fetchCarreras } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,24 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, CheckCircle2, LogOut, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+const CARRERAS_DEFAULT = [
+  { value: 'LAF', label: 'Licenciatura Administrativa con Énfasis en Finanzas (LAF)' },
+  { value: 'LCM', label: 'Licenciatura Comercial con Énfasis en Mercadeo (LCM)' },
+  { value: 'IGI', label: 'Ingeniería en Gestión Industrial (IGI)' },
+  { value: 'ICE', label: 'Ingeniería Cibernética Electrónica (ICE)' },
+  { value: 'IME', label: 'Ingeniería Mecánica y Energías Renovables (IME)' },
+  { value: 'IMS', label: 'Ingeniería Mecatrónica y Sistemas de Control (IMS)' },
+  { value: 'IEM', label: 'Ingeniería Electromédica (IEM)' },
+];
+
+const ANOS = [
+  { value: '1', label: '1er Año' },
+  { value: '2', label: '2do Año' },
+  { value: '3', label: '3er Año' },
+  { value: '4', label: '4to Año' },
+  { value: '5', label: '5to Año' },
+];
 
 export default function CompletarPerfilPage() {
   const router = useRouter();
@@ -21,6 +39,18 @@ export default function CompletarPerfilPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [carreras, setCarreras] = useState(CARRERAS_DEFAULT);
+
+  useEffect(() => {
+    fetchCarreras().then((data) => {
+      if (data && data.length > 0) {
+        setCarreras(data.map((c) => ({
+          value: c.codigo,
+          label: `${c.nombre} (${c.codigo})`,
+        })));
+      }
+    }).catch(() => {});
+  }, []);
 
   // Sincronizar datos si el usuario carga después del montaje
   useEffect(() => {
@@ -38,23 +68,7 @@ export default function CompletarPerfilPage() {
     }
   }, [user, router]);
 
-  const CARRERAS = [
-    { value: 'LAF', label: 'Licenciatura Administrativa con Énfasis en Finanzas (LAF)' },
-    { value: 'LCM', label: 'Licenciatura Comercial con Énfasis en Mercadeo (LCM)' },
-    { value: 'IGI', label: 'Ingeniería en Gestión Industrial (IGI)' },
-    { value: 'ICE', label: 'Ingeniería Cibernética Electrónica (ICE)' },
-    { value: 'IME', label: 'Ingeniería Mecánica y Energías Renovables (IME)' },
-    { value: 'IMS', label: 'Ingeniería Mecatrónica y Sistemas de Control (IMS)' },
-    { value: 'IEM', label: 'Ingeniería Electromédica (IEM)' },
-  ];
 
-  const ANOS = [
-    { value: '1', label: '1er Año' },
-    { value: '2', label: '2do Año' },
-    { value: '3', label: '3er Año' },
-    { value: '4', label: '4to Año' },
-    { value: '5', label: '5to Año' },
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,7 +165,7 @@ export default function CompletarPerfilPage() {
                     <SelectValue placeholder="Selecciona tu carrera" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CARRERAS.map((c) => (
+                    {carreras.map((c) => (
                       <SelectItem key={c.value} value={c.value}>
                         {c.label}
                       </SelectItem>

@@ -7,8 +7,19 @@ export interface User {
   role: UserRole;
   carnet?: string;
   carrera?: string;
+  carrera_nombre?: string;
   ano_cursado?: string;
   requiere_completar_perfil?: boolean;
+}
+
+export interface Carrera {
+  id: number;
+  codigo: string;
+  nombre: string;
+  facultad: 'ING' | 'FCEA' | 'OTRA';
+  facultad_display?: string;
+  activa: boolean;
+  fecha_creacion?: string;
 }
 
 export interface AuthContextType {

@@ -6,6 +6,28 @@ from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
 
+# --- MODELO CARRERA (GESTIÓN DINÁMICA DE OFERTA ACADÉMICA) ---
+class Carrera(models.Model):
+    FACULTADES = [
+        ('ING', 'Facultad de Ingeniería'),
+        ('FCEA', 'Facultad de Ciencias Económicas y Administrativas'),
+        ('OTRA', 'Otra Facultad / Centro'),
+    ]
+    codigo = models.CharField(max_length=20, unique=True, help_text="Siglas oficiales (Ej: ICE, IMS, ISW)")
+    nombre = models.CharField(max_length=150, help_text="Nombre oficial completo de la carrera")
+    facultad = models.CharField(max_length=10, choices=FACULTADES, default='ING')
+    activa = models.BooleanField(default=True, help_text="Indica si la carrera está disponible para nuevos registros")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Carrera"
+        verbose_name_plural = "Carreras"
+        ordering = ['nombre']
+
+    def __str__(self):
+        return f"{self.codigo} - {self.nombre}"
+
+
 # --- MODELO ESTUDIANTE ---
 class Estudiante(AbstractUser):
     CARRERAS_ULSA = [
@@ -18,9 +40,18 @@ class Estudiante(AbstractUser):
         ('IEM', 'Ingeniería Electromédica'),
     ]
     carnet = models.CharField(max_length=20, null=True, blank=True)
-    carrera = models.CharField(max_length=5, choices=CARRERAS_ULSA, null=True, blank=True)
+    carrera = models.CharField(max_length=20, null=True, blank=True, help_text="Código o sigla de la carrera (Ej: ICE, ISW)")
     ano_cursado = models.CharField(max_length=20, null=True, blank=True)
     sancionado = models.BooleanField(default=False)
+
+    def get_carrera_display_nombre(self):
+        if not self.carrera:
+            return ""
+        c = Carrera.objects.filter(codigo__iexact=self.carrera).first()
+        if c:
+            return c.nombre
+        dict_carreras = dict(self.CARRERAS_ULSA)
+        return dict_carreras.get(self.carrera.upper(), self.carrera)
 
     def actualizar_estado_sancion(self):
         hoy = timezone.localdate()

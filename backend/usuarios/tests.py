@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import DetallePrestamo, Equipo, Estudiante, Prestamo
+from .models import Carrera, DetallePrestamo, Equipo, Estudiante, Prestamo
 
 
 class PrestamoRecepcionTests(APITestCase):
@@ -122,7 +122,7 @@ class ReglasNegocioFase2Tests(APITestCase):
 		self.assertIn('sin motivo especificado', self.loan.motivo_rechazo.lower())
 
 	def test_actualizar_estado_sancion_auto_resolves_expired_sanctions(self):
-		from .models import Sancion
+		from .models import Carrera, Sancion
 		hoy = timezone.localdate()
 		sancion = Sancion.objects.create(
 			estudiante=self.student,
@@ -148,7 +148,7 @@ class ReglasNegocioFase2Tests(APITestCase):
 
 	def test_procesar_atrasados_command_transitions_overdue_active_loans(self):
 		from .management.commands.procesar_atrasados import ejecutar_procesamiento_atrasados
-		from .models import Sancion
+		from .models import Carrera, Sancion
 
 		# Crear un préstamo ACTIVO vencido
 		prestamo_activo = Prestamo.objects.create(
@@ -448,4 +448,41 @@ class CalidadFase4Tests(APITestCase):
 		self.assertIn('prestamos_por_mes', res.data)
 		self.assertIn('distribucion_estados', res.data)
 
+	def test_gestion_dinamica_carreras(self):
+		# 1. Endpoint público para listar carreras activas
+		res_publico = self.client.get('/api/carreras/')
+		self.assertEqual(res_publico.status_code, status.HTTP_200_OK)
+		codigos = [c['codigo'] for c in res_publico.data]
+		self.assertIn('ICE', codigos)
+		self.assertIn('IMS', codigos)
 
+		# 2. Estudiante normal no puede crear una carrera (403)
+		self.client.force_authenticate(user=self.student)
+		res_crear_est = self.client.post('/api/carreras/', {
+			'codigo': 'ISW',
+			'nombre': 'Ingeniería de Software',
+			'facultad': 'ING'
+		})
+		self.assertEqual(res_crear_est.status_code, status.HTTP_403_FORBIDDEN)
+
+		# 3. Administrador sí puede crear una nueva carrera (201)
+		self.client.force_authenticate(user=self.admin)
+		res_crear_admin = self.client.post('/api/carreras/', {
+			'codigo': 'ISW',
+			'nombre': 'Ingeniería de Software',
+			'facultad': 'ING'
+		})
+		self.assertEqual(res_crear_admin.status_code, status.HTTP_201_CREATED, msg=f"Error creando carrera: {res_crear_admin.data}")
+		self.assertEqual(res_crear_admin.data['codigo'], 'ISW')
+
+		# 4. Estudiante ahora puede completar su perfil con la nueva carrera 'ISW'
+		self.client.force_authenticate(user=self.student)
+		res_perfil = self.client.post(reverse('auth_completar_perfil'), {
+			'carnet': '24-9999',
+			'carrera': 'ISW',
+			'ano_cursado': '2'
+		})
+		self.assertEqual(res_perfil.status_code, status.HTTP_200_OK, msg=f"Error en completar perfil: {res_perfil.data}")
+		self.student.refresh_from_db()
+		self.assertEqual(self.student.carrera, 'ISW')
+		self.assertEqual(self.student.get_carrera_display_nombre(), 'Ingeniería de Software')

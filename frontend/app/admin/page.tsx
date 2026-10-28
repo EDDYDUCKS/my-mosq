@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ProtectedLayout } from '@/components/protected-layout';
 import { AppHeader } from '@/components/app-header';
 import { ReportsDownload } from '@/components/reports-download';
+import { CarrerasDialog } from '@/components/carreras-dialog';
 import { fetchAdminLoans, fetchEquipment, procesarAtrasadosApi } from '@/lib/api-client';
 import { Equipment, LoanRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -183,11 +184,16 @@ export default function AdminDashboard() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Resumen</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Vista general del sistema de préstamos
-            </p>
+          <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Resumen</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Vista general del sistema de préstamos
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <CarrerasDialog />
+            </div>
           </div>
 
           {/* Stats Grid */}

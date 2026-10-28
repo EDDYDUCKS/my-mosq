@@ -25,9 +25,9 @@ class ExcelBinaryRenderer(BaseRenderer):
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
-from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion
+from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion, Carrera
 
-from .serializers import EstudianteSerializer, EquipoSerializer, PrestamoSerializer, SancionSerializer, BitacoraAccionSerializer
+from .serializers import EstudianteSerializer, EquipoSerializer, PrestamoSerializer, SancionSerializer, BitacoraAccionSerializer, CarreraSerializer
 from .pagination import StandardResultsSetPagination
 from .utils import registrar_auditoria, enviar_notificacion_email
 import os
@@ -1133,7 +1133,8 @@ class CompletarPerfilView(APIView):
         if len(carnet) < 4 or len(carnet) > 25:
             return Response({'detail': 'El número de carnet debe tener entre 4 y 25 caracteres.'}, status=400)
 
-        carreras_validas = [c[0] for c in Estudiante.CARRERAS_ULSA]
+        carreras_db = list(Carrera.objects.filter(activa=True).values_list('codigo', flat=True))
+        carreras_validas = [c.upper() for c in (carreras_db or [c[0] for c in Estudiante.CARRERAS_ULSA])]
         if carrera not in carreras_validas:
             return Response({'detail': f'Carrera inválida. Opciones válidas: {", ".join(carreras_validas)}'}, status=400)
 
@@ -1286,4 +1287,28 @@ def estadisticas_dashboard(request):
         'total_equipos': Equipo.objects.count(),
         'total_estudiantes': Estudiante.objects.count(),
     })
-
+
+# --- CONTROLADOR DE CARRERAS (OFERTA ACADÉMICA DINÁMICA) ---
+class CarreraViewSet(viewsets.ModelViewSet):
+    """
+    CRUD completo de carreras universitarias.
+    - Lectura (GET): Pública para que el frontend liste las carreras activas en registros y perfiles.
+    - Escritura (POST, PUT, PATCH, DELETE): Exclusiva para administradores de Bienestar/ULSA.
+    """
+    queryset = Carrera.objects.all()
+    serializer_class = CarreraSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = Carrera.objects.all()
+        user = self.request.user
+        # Si no es staff/admin ni se pide ver todas, filtrar solo las activas
+        ver_todas = self.request.query_params.get('todas', '').lower() in ('1', 'true', 'si')
+        if not (user and user.is_authenticated and (user.is_staff or user.is_superuser)) and not ver_todas:
+            qs = qs.filter(activa=True)
+        return qs.order_by('nombre')
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAdminUser()]
+        return [permissions.AllowAny()]

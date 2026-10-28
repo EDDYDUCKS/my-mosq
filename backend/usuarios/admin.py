@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion
+from .models import Estudiante, Equipo, Prestamo, DetallePrestamo, Sancion, BitacoraAccion, Carrera
 
 
 @admin.register(Estudiante)
@@ -53,3 +53,11 @@ class BitacoraAccionAdmin(admin.ModelAdmin):
     list_filter = ('accion', 'fecha_hora')
     search_fields = ('descripcion', 'usuario__username', 'ip_address')
     ordering = ('-fecha_hora', '-id')
+
+@admin.register(Carrera)
+class CarreraAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'nombre', 'facultad', 'activa', 'fecha_creacion')
+    list_editable = ('activa',)
+    list_filter = ('activa', 'facultad')
+    search_fields = ('codigo', 'nombre')
+    ordering = ('nombre',)

@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { ProtectedLayout } from '@/components/protected-layout';
 import { AppHeader } from '@/components/app-header';
 import { useAuth } from '@/lib/auth-context';
-import { completarPerfilApi, fetchSanctions } from '@/lib/api-client';
-import { Sanction } from '@/lib/types';
+import { completarPerfilApi, fetchSanctions, fetchCarreras } from '@/lib/api-client';
+import { Sanction, Carrera } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +80,7 @@ export default function StudentProfilePage() {
   const [carnet, setCarnet] = useState(user?.carnet || '');
   const [carrera, setCarrera] = useState(user?.carrera || '');
   const [anoCursado, setAnoCursado] = useState(user?.ano_cursado || '');
+  const [carrerasList, setCarrerasList] = useState<{ value: string; label: string }[]>(CARRERAS_LIST);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -96,6 +97,14 @@ export default function StudentProfilePage() {
       .finally(() => {
         if (isMounted) setLoadingSanctions(false);
       });
+
+    fetchCarreras()
+      .then((data) => {
+        if (isMounted && data.length > 0) {
+          setCarrerasList(data.map((item) => ({ value: item.codigo, label: `${item.nombre} (${item.codigo})` })));
+        }
+      })
+      .catch(() => {});
 
     return () => {
       isMounted = false;
@@ -147,9 +156,8 @@ export default function StudentProfilePage() {
     { label: 'Mi Perfil', href: '/perfil', icon: <UserIcon className="w-4 h-4" /> },
   ];
 
-  const carreraNombre = user?.carrera
-    ? CARRERAS_MAP[user.carrera.toUpperCase()] || user.carrera
-    : 'No registrada';
+  const carreraNombre = user?.carrera_nombre
+    || (user?.carrera ? (CARRERAS_MAP[user.carrera.toUpperCase()] || user.carrera) : 'No registrada');
 
   const anoNombre = user?.ano_cursado ? `${user.ano_cursado}° Año` : 'No registrado';
 
@@ -343,7 +351,7 @@ export default function StudentProfilePage() {
                   <SelectValue placeholder="Selecciona tu carrera" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CARRERAS_LIST.map((c) => (
+                  {carrerasList.map((c) => (
                     <SelectItem key={c.value} value={c.value} className="text-xs">
                       {c.label}
                     </SelectItem>

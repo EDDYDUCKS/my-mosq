@@ -1,4 +1,4 @@
-import { Equipment, LoanRequest, Sanction, User, DashboardStats } from '@/lib/types';
+import { Equipment, LoanRequest, Sanction, User, DashboardStats, Carrera } from '@/lib/types';
 
 
 export const AUTH_TOKEN_KEY = 'gear_auth_token';
@@ -690,5 +690,27 @@ export async function completarPerfilApi(carnet: string, carrera: string, ano_cu
 export async function procesarAtrasadosApi(): Promise<{ detail: string }> {
   return apiRequest<{ detail: string }>('/prestamos/procesar_atrasados/', {
     method: 'POST',
+  });
+}
+
+export async function fetchCarreras(todas = false): Promise<Carrera[]> {
+  const query = todas ? '?todas=true' : '';
+  return apiRequest<Carrera[]>(`/carreras/${query}`, {
+    method: 'GET',
+    auth: false,
+  });
+}
+
+export async function createCarrera(carrera: { codigo: string; nombre: string; facultad: string; activa?: boolean }): Promise<Carrera> {
+  return apiRequest<Carrera>('/carreras/', {
+    method: 'POST',
+    body: carrera,
+  });
+}
+
+export async function updateCarrera(id: number, data: Partial<Carrera>): Promise<Carrera> {
+  return apiRequest<Carrera>(`/carreras/${id}/`, {
+    method: 'PATCH',
+    body: data,
   });
 }
